@@ -15,7 +15,10 @@ import org.worklog.app.data.model.WeeklyRotaResponse
 
 interface RemoteDataSource {
 
-    suspend fun login(email: String, password: String): ResultWrapper<BaseResponse<LoginResponse>>
+    suspend fun sendOtp(phone: String): ResultWrapper<BaseResponse<Unit>>
+    suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<BaseResponse<LoginResponse>>
+    // -- email login (commented out, restore if needed) --
+    // suspend fun login(email: String, password: String): ResultWrapper<BaseResponse<LoginResponse>>
     suspend fun forgotPassword(email: String): ResultWrapper<BaseResponse<Unit>>
     suspend fun resetPassword(
         email: String,

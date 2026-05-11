@@ -9,7 +9,10 @@ import org.worklog.app.domain.model.UserInfo
 
 interface UserRepository {
     val userProfile: Flow<ResultWrapper<UserInfo>>
-    suspend fun login(username: String, password: String): ResultWrapper<UserInfo>
+    suspend fun sendOtp(phone: String): ResultWrapper<String>
+    suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<UserInfo>
+    // -- email login (commented out, restore if needed) --
+    // suspend fun login(username: String, password: String): ResultWrapper<UserInfo>
     suspend fun forgotPassword(email: String): ResultWrapper<String>
     suspend fun resetPassword(
         email: String,

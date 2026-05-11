@@ -23,6 +23,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -38,7 +39,8 @@ fun CustomTextField(
     isPassword: Boolean = false,
     isError: Boolean = false,
     containerColor: Color = Color.Transparent,
-    trailingIconVector: ImageVector? = null
+    trailingIconVector: ImageVector? = null,
+    keyboardOptions: KeyboardOptions = KeyboardOptions.Default
 ) {
     var showPassword by remember { mutableStateOf(false) }
 
@@ -50,6 +52,7 @@ fun CustomTextField(
         onValueChange = onValueChange,
         singleLine = true,
         isError = isError,
+        keyboardOptions = keyboardOptions,
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = {
             Text(

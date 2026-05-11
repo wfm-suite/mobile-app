@@ -25,20 +25,33 @@ class RemoteDataSourceImpl(
 
     private val baseUrl = "https://gbspares.com/api/app"
 
-    override suspend fun login(
-        email: String,
-        password: String
-    ): ResultWrapper<BaseResponse<LoginResponse>> {
-        val formData = mapOf(
-            "email" to email,
-            "password" to password
-        )
-
-        return apiService.postForm<BaseResponse<LoginResponse>>(
-            endpoint = "${baseUrl}/login",
+    override suspend fun sendOtp(phone: String): ResultWrapper<BaseResponse<Unit>> {
+        val formData = mapOf("phone" to phone)
+        return apiService.postForm<BaseResponse<Unit>>(
+            endpoint = "${baseUrl}/auth/phone/otp",
             formData = formData
         )
     }
+
+    override suspend fun verifyOtp(
+        phone: String,
+        otp: String
+    ): ResultWrapper<BaseResponse<LoginResponse>> {
+        val formData = mapOf(
+            "phone" to phone,
+            "otp" to otp
+        )
+        return apiService.postForm<BaseResponse<LoginResponse>>(
+            endpoint = "${baseUrl}/auth/phone/login",
+            formData = formData
+        )
+    }
+
+    // -- email login (commented out, restore if needed) --
+    // override suspend fun login(email: String, password: String): ResultWrapper<BaseResponse<LoginResponse>> {
+    //     val formData = mapOf("email" to email, "password" to password)
+    //     return apiService.postForm<BaseResponse<LoginResponse>>(endpoint = "${baseUrl}/login", formData = formData)
+    // }
 
     override suspend fun forgotPassword(email: String): ResultWrapper<BaseResponse<Unit>> {
         val formData = mapOf(

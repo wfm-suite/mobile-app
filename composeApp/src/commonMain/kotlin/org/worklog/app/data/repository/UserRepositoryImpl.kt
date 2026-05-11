@@ -55,13 +55,16 @@ class UserRepositoryImpl(
         }
     }
 
-    override suspend fun login(
-        username: String,
-        password: String
-    ): ResultWrapper<UserInfo> {
+    override suspend fun sendOtp(phone: String): ResultWrapper<String> {
+        return handleSuccessResponse {
+            remoteDataSource.sendOtp(phone)
+        }
+    }
+
+    override suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<UserInfo> {
         return handleApiResponse(
             call = {
-                val result = remoteDataSource.login(username, password)
+                val result = remoteDataSource.verifyOtp(phone, otp)
                 if (result is ResultWrapper.Success) {
                     result.data.data?.token?.let { preferenceDataSource.saveAuthToken(it) }
                 }
@@ -70,6 +73,20 @@ class UserRepositoryImpl(
             mapper = { it.user.toDomainModel() }
         )
     }
+
+    // -- email login (commented out, restore if needed) --
+    // override suspend fun login(username: String, password: String): ResultWrapper<UserInfo> {
+    //     return handleApiResponse(
+    //         call = {
+    //             val result = remoteDataSource.login(username, password)
+    //             if (result is ResultWrapper.Success) {
+    //                 result.data.data?.token?.let { preferenceDataSource.saveAuthToken(it) }
+    //             }
+    //             result
+    //         },
+    //         mapper = { it.user.toDomainModel() }
+    //     )
+    // }
 
     override suspend fun forgotPassword(email: String): ResultWrapper<String> {
         return handleSuccessResponse {

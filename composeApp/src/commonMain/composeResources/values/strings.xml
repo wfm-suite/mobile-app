@@ -44,4 +44,10 @@
     <string name="onboarding_btn_continue">Continue</string>
     <string name="token">Token</string>
     <string name="code">Code</string>
+    <string name="phone_number">Phone Number</string>
+    <string name="enter_otp">Enter OTP</string>
+    <string name="send_otp">Send OTP</string>
+    <string name="verify">Verify</string>
+    <string name="change_number">Change Number</string>
+    <string name="otp_sent">OTP sent to your number</string>
 </resources>
