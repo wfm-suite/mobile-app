@@ -94,7 +94,7 @@ private fun CollapsedCalendarView(
             fullDate = fullDate,
             dayNumber = date.day.toString(),
             dayName = date.dayOfWeek.name.take(3),
-            shift = rotaMap[fullDate]?.shiftStatus ?: "OFF"
+            shift = rotaMap[fullDate]?.shiftType?.ifBlank { "OFF" } ?: "OFF"
         )
     }
 
@@ -198,8 +198,8 @@ private fun generateMonthCalendar(
 
         CalendarDay(
             fullDate = fullDate,
-            dayNumber = date.day.toString(), // Use dayOfMonth for clarity
-            shift = rotaMap[fullDate]?.shiftStatus ?: "OFF",
+            dayNumber = date.day.toString(),
+            shift = rotaMap[fullDate]?.shiftType?.ifBlank { "OFF" } ?: "OFF",
             isCurrentMonth = date.month == currentDate.month
         )
     }
