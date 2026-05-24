@@ -145,6 +145,14 @@ class UserRepositoryImpl(
         )
     }
 
+    override suspend fun getAuthUserRotaLastNDays(days: Int): ResultWrapper<List<Rota>> {
+        val user = (_userProfile.value as? ResultWrapper.Success)?.data
+        return handleApiResponse(
+            call = { remoteDataSource.getAuthUserRotaLastNDays(days) },
+            mapper = { it.rotas.map { it.toDomainModel(user?.designation ?: "Your Designation") } }
+        )
+    }
+
     override suspend fun getCurrentRota(): ResultWrapper<Rota?> {
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleNullableApiResponse(

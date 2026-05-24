@@ -43,7 +43,32 @@ class HomeViewModel(
     fun refreshData() {
         updateGreetingAndDate()
         loadUserRota()
-        loadMonthlyRota(_uiState.value.selectedMonth, _uiState.value.selectedYear)
+        loadHomeShifts()
+    }
+
+    fun loadHomeShifts() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true) }
+            val result = rotaUseCase.getLastNDaysRota(40)
+            if (result is ResultWrapper.Success) {
+                val rotas = result.data
+                _uiState.update {
+                    it.copy(
+                        monthlyRotas = rotas,
+                        rotaStartDate = rotas.firstOrNull()?.fullDate ?: "",
+                        rotaEndDate = rotas.lastOrNull()?.fullDate ?: "",
+                        isLoading = false
+                    )
+                }
+            } else {
+                _uiState.update {
+                    it.copy(
+                        message = (result as? ResultWrapper.Error)?.message,
+                        isLoading = false
+                    )
+                }
+            }
+        }
     }
 
     @OptIn(ExperimentalCoroutinesApi::class)

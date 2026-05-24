@@ -7,7 +7,8 @@ import kotlinx.serialization.Serializable
 data class RotaResponse(
     @SerialName("employee_id")
     val employeeId: Int,
-    val rotas: List<RotaDto>
+    val rotas: List<RotaDto>,
+    val month: RotaDurationDto? = null
 )
 
 @Serializable

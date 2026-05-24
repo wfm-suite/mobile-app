@@ -45,6 +45,7 @@ interface RemoteDataSource {
         month: Int,
         year: Int
     ): ResultWrapper<BaseResponse<RotaResponse>>
+    suspend fun getAuthUserRotaLastNDays(days: Int): ResultWrapper<BaseResponse<RotaResponse>>
     suspend fun getRotaByUserId(userId: Int): ResultWrapper<BaseResponse<RotaResponse>>
     suspend fun getAllUsersWeeklyRota(): ResultWrapper<BaseResponse<WeeklyRotaResponse>>
     suspend fun getAllUsersMonthlyRota(): ResultWrapper<BaseResponse<MonthlyRotaResponse>>

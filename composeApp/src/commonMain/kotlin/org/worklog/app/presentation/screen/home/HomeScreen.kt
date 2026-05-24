@@ -126,13 +126,14 @@ private fun HomeScreenContent(
 ) {
     val listState = rememberLazyListState()
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
+    var hasScrolledToToday by remember { mutableStateOf(false) }
 
     LaunchedEffect(monthlyShifts) {
-        if (monthlyShifts.isNotEmpty()) {
+        if (monthlyShifts.isNotEmpty() && !hasScrolledToToday) {
             val todayIndex = monthlyShifts.indexOfFirst { it.fullDate == today }
-            val targetIndex = if (todayIndex >= 0) todayIndex else 0
-             // offset by 1 for the one title item in the LazyColumn
-            listState.scrollToItem(targetIndex + 1)
+            val targetIndex = if (todayIndex >= 0) todayIndex else monthlyShifts.lastIndex
+            listState.scrollToItem(targetIndex)
+            hasScrolledToToday = true
         }
     }
 

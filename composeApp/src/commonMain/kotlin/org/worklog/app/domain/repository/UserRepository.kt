@@ -30,6 +30,7 @@ interface UserRepository {
         month: Int,
         year: Int
     ): ResultWrapper<List<Rota>>
+    suspend fun getAuthUserRotaLastNDays(days: Int): ResultWrapper<List<Rota>>
     suspend fun getCurrentRota(): ResultWrapper<Rota?>
     suspend fun getUpcomingRotas(): ResultWrapper<List<Rota>>
     suspend fun getLeaveSummary(): ResultWrapper<LeaveSummary>

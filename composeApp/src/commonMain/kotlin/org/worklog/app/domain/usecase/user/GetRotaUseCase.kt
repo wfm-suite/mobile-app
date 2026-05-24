@@ -12,6 +12,8 @@ class GetRotaUseCase(
     suspend fun getUpcomingRotas() = userRepository.getUpcomingRotas()
 
     suspend fun getMonthlyRota(month: Int, year: Int) = userRepository.getAuthUserMonthlyRotaByMonthYear(month, year)
+
+    suspend fun getLastNDaysRota(days: Int) = userRepository.getAuthUserRotaLastNDays(days)
     
     suspend fun getUpcomingOpenRota() = rotaRepository.getUpcomingOpenRota()
 }

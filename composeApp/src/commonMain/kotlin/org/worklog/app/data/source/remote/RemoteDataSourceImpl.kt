@@ -130,8 +130,20 @@ class RemoteDataSourceImpl(
         year: Int
     ): ResultWrapper<BaseResponse<RotaResponse>> {
         val formData = mapOf(
+            "mode" to "monthly",
             "month" to month.toString(),
             "year" to year.toString()
+        )
+        return apiService.postForm<BaseResponse<RotaResponse>>(
+            endpoint = "${baseUrl}/rota/month/auth-user",
+            formData = formData
+        )
+    }
+
+    override suspend fun getAuthUserRotaLastNDays(days: Int): ResultWrapper<BaseResponse<RotaResponse>> {
+        val formData = mapOf(
+            "mode" to "custom",
+            "days" to days.toString()
         )
         return apiService.postForm<BaseResponse<RotaResponse>>(
             endpoint = "${baseUrl}/rota/month/auth-user",
