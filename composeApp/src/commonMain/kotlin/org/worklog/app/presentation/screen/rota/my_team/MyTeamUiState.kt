@@ -10,9 +10,11 @@ data class MyTeamUiState(
     val userInfo: UserInfo? = null,
     val isCalendarExpanded: Boolean = false,
     val selectedDate: String? = null,
+    val selectedMonth: Int? = null,
+    val selectedYear: Int? = null,
     val isLoading: Boolean = false,
     val message: String? = null,
-    val shiftTypes: List<String> = listOf("All, Day, Night"),
+    val shiftTypes: List<String> = listOf("All", "Day", "Night"),
     val selectedShiftStatus: String? = "All",
     val floorNames: List<String> = listOf("All"),
     val selectedFloorName: String? = "All"

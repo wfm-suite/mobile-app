@@ -9,6 +9,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
 import org.worklog.app.core.util.ResultWrapper
 import org.worklog.app.domain.model.UserInfo
@@ -38,14 +39,21 @@ class MyTeamViewModel(
         val currentDate = Clock.System.now()
             .toLocalDateTime(TimeZone.currentSystemDefault())
             .date
-            .toString()
-        _uiState.update { it.copy(selectedDate = currentDate) }
+        
+        _uiState.update { 
+            it.copy(
+                selectedDate = currentDate.toString(),
+                selectedMonth = currentDate.month.number,
+                selectedYear = currentDate.year
+            ) 
+        }
     }
 
     private fun observeUserProfile() {
         viewModelScope.launch {
             userProfileUseCase.getUserProfile.collect { result ->
                 if (result is ResultWrapper.Success) {
+                    println("\n\n User Profile: ${result.data}\n\n")
                     _uiState.update { it.copy(userInfo = result.data) }
                     loadEmployeeRotas(result.data) // Trigger loadEmployeeRotas after userInfo is available
                 } else if (result is ResultWrapper.Error) {
@@ -64,7 +72,17 @@ class MyTeamViewModel(
             _uiState.update { it.copy(isLoading = true, message = null) }
 
             val weeklyDeferred = async { employeeRotaUseCase.getAllUsersWeeklyRota() }
-            val monthlyDeferred = async { employeeRotaUseCase.getAllUsersMonthlyRota() }
+            val monthlyDeferred = async {
+                val state = _uiState.value
+                if (state.selectedMonth != null && state.selectedYear != null) {
+                    employeeRotaUseCase.getAllUsersMonthlyRotaByMonthYear(
+                        state.selectedMonth,
+                        state.selectedYear
+                    )
+                } else {
+                    employeeRotaUseCase.getAllUsersMonthlyRota()
+                }
+            }
 
             val weeklyResult = weeklyDeferred.await()
             val monthlyResult = monthlyDeferred.await()
@@ -88,14 +106,15 @@ class MyTeamViewModel(
                             .filter { it.isNotBlank() }
                             .distinct()
 
-                        val today = state.selectedDate ?: Clock.System.now()
+                        // Use the already selected date from state, don't override it
+                        val selectedDate = state.selectedDate ?: Clock.System.now()
                             .toLocalDateTime(TimeZone.currentSystemDefault())
                             .date
                             .toString()
 
                         val currentUserId = userInfo?.id.toString()
                         val todayRota = allRotas.firstOrNull {
-                            it.rota.fullDate == today && it.employee.id.toString() == currentUserId
+                            it.rota.fullDate == selectedDate && it.employee.id.toString() == currentUserId
                         }
 
                         state.copy(
@@ -103,7 +122,7 @@ class MyTeamViewModel(
                             monthlyRotas = monthlyResult.data,
                             shiftTypes = uniqueShiftTypes,
                             floorNames = uniqueFloorNames,
-                            selectedDate = today,
+                            selectedDate = selectedDate,
                             selectedFloorName = todayRota?.rota?.floorName ?: "All",
                             selectedShiftStatus = if (todayRota == null) "All" else if (todayRota.rota.shiftStatus.startsWith("N", ignoreCase = true)) "Night" else "Day",
                             isLoading = false
@@ -128,6 +147,23 @@ class MyTeamViewModel(
                 }
             }
             filterRotas()
+        }
+    }
+
+    fun onMonthYearSelected(month: Int, year: Int) {
+        // Create the first day of the selected month
+        val firstDayOfMonth = "$year-${month.toString().padStart(2, '0')}-01"
+        
+        _uiState.update { 
+            it.copy(
+                selectedMonth = month,
+                selectedYear = year,
+                selectedDate = firstDayOfMonth
+            ) 
+        }
+        // Reload data with new month/year
+        _uiState.value.userInfo?.let { userInfo ->
+            loadEmployeeRotas(userInfo)
         }
     }
 

@@ -51,9 +51,9 @@ data class RotaDto(
     val id: Int,
     val date: String,
     @SerialName("shift_start_time")
-    val shiftStartTime: String,
+    val shiftStartTime: String? = null,
     @SerialName("shift_end_time")
-    val shiftEndTime: String,
+    val shiftEndTime: String? = null,
     @SerialName("break_start_time")
     val breakStartTime: String? = null,
     @SerialName("break_end_time")
@@ -73,7 +73,11 @@ data class RotaDto(
     @SerialName("start_time_enabled")
     val startTimeEnabled: Boolean = false,
     @SerialName("floor_name")
-    val floorName: String? = null
+    val floorName: String? = null,
+    @SerialName("shift_label")
+    val shiftLabel: String? = null,
+    @SerialName("short_code")
+    val shortCode: String? = null
 )
 
 @Serializable
@@ -97,4 +101,10 @@ data class SwapRequest(
 data class RotaHanoverRequest(
     @SerialName("rota_id")
     val rotaId: Int
+)
+
+@Serializable
+data class OpenRotaResponse(
+    @Serializable
+    val rotas: List<RotaDto>
 )

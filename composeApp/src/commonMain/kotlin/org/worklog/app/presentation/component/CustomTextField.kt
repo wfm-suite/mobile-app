@@ -2,10 +2,10 @@ package org.worklog.app.presentation.component
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material.icons.outlined.VisibilityOff
@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.input.KeyboardOptions
 import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.input.VisualTransformation
 import org.jetbrains.compose.ui.tooling.preview.Preview
@@ -45,14 +44,12 @@ fun CustomTextField(
     var showPassword by remember { mutableStateOf(false) }
 
     OutlinedTextField(
-        modifier = modifier.fillMaxWidth()
-            .height(dimens.inputHeight),
+        modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(dimens.cornerRadius),
         value = value,
         onValueChange = onValueChange,
         singleLine = true,
         isError = isError,
-        keyboardOptions = keyboardOptions,
         textStyle = MaterialTheme.typography.bodyLarge,
         placeholder = {
             Text(
@@ -62,6 +59,7 @@ fun CustomTextField(
                 )
             )
         },
+        keyboardOptions = keyboardOptions,
         visualTransformation = if (isPassword && !showPassword) PasswordVisualTransformation() else VisualTransformation.None,
         trailingIcon = {
             if (trailingIconVector != null) {

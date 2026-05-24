@@ -21,6 +21,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.unit.dp
+import kotlinx.datetime.LocalDate
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.todayIn
 import kotlinx.serialization.json.Json
 import org.koin.compose.viewmodel.koinViewModel
 import org.worklog.app.domain.model.EmployeeRota
@@ -35,6 +38,7 @@ import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.LocalSnackBarHostState
 import org.worklog.app.presentation.theme.dimens
+import kotlin.time.Clock
 
 @Composable
 fun MyTeamScreen(
@@ -69,6 +73,8 @@ fun MyTeamScreen(
         selectedShiftType = uiState.selectedShiftStatus,
         floorNames = uiState.floorNames,
         selectedFloorName = uiState.selectedFloorName,
+        selectedMonth = uiState.selectedMonth,
+        selectedYear = uiState.selectedYear,
         onCalendarToggle = viewModel::onCalendarToggle,
         selectedDates = if (uiState.selectedDate != null) listOf(
             uiState.selectedDate ?: ""
@@ -76,12 +82,22 @@ fun MyTeamScreen(
         onDateSelected = viewModel::onDateSelected,
         onShiftTypeSelected = viewModel::onShiftTypeSelected,
         onFloorNameSelected = viewModel::onFloorNameSelected,
+        onMonthYearSelected = viewModel::onMonthYearSelected,
         onRotaClick = { rota ->
             val currentUserId = uiState.userInfo?.id
             val rotaEmployeeId = rota.employee.id.toString()
 
             if (currentUserId == rotaEmployeeId) {
                 viewModel.showError("You can't swap with your own rota")
+                return@MyTeamScreenContent
+            }
+
+            // Check if rota date is in the past
+            val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
+            val rotaDate = LocalDate.parse(rota.rota.fullDate)
+            
+            if (rotaDate < today) {
+                viewModel.showError("You can't swap previous rota")
                 return@MyTeamScreenContent
             }
 
@@ -104,11 +120,14 @@ private fun MyTeamScreenContent(
     selectedShiftType: String?,
     floorNames: List<String>,
     selectedFloorName: String?,
+    selectedMonth: Int?,
+    selectedYear: Int?,
     onCalendarToggle: () -> Unit,
     onRotaClick: (EmployeeRota) -> Unit = {},
     onDateSelected: (String) -> Unit = {},
     onShiftTypeSelected: (String) -> Unit = {},
-    onFloorNameSelected: (String) -> Unit = {}
+    onFloorNameSelected: (String) -> Unit = {},
+    onMonthYearSelected: (Int, Int) -> Unit = { _, _ -> }
 ) {
     Column(
         modifier = Modifier
@@ -124,6 +143,9 @@ private fun MyTeamScreenContent(
                 floorNames = floorNames,
                 selectedFloorName = selectedFloorName,
                 onFloorNameSelected = onFloorNameSelected,
+                selectedMonth = selectedMonth,
+                selectedYear = selectedYear,
+                onMonthYearSelected = onMonthYearSelected,
                 isLoading = isLoading,
                 showFloorDropdown = true
             )
@@ -131,7 +153,9 @@ private fun MyTeamScreenContent(
                 isExpanded = isCalendarExpanded,
                 selectedDays = selectedDates,
                 onDateSelected = onDateSelected,
-                rotas = calendarRotas.map { it.rota }
+                rotas = calendarRotas.map { it.rota },
+                selectedMonth = selectedMonth,
+                selectedYear = selectedYear
             )
             if (isLoading) {
                 ShimmerBox(

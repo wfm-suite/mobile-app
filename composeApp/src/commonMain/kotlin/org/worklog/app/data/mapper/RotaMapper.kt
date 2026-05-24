@@ -16,8 +16,8 @@ fun RotaDto.toDomainModel(designation: String): Rota {
         fullDate = date,
         date = dayOnly,
         dayName = dayName,
-        shiftStartTime = shiftStartTime,
-        shiftEndTime = shiftEndTime,
+        shiftStartTime = shiftStartTime ?: "",
+        shiftEndTime = shiftEndTime ?: "",
         breakStartTime = breakStartTime ?: "",
         breakEndTime = breakEndTime ?: "",
         totalHours = totalHours ?: "",
@@ -28,7 +28,9 @@ fun RotaDto.toDomainModel(designation: String): Rota {
         status = swapStatus.toRotaStatus(),
         designation = designation,
         startTimeEnabled = startTimeEnabled,
-        floorName = floorName ?: ""
+        floorName = floorName ?: "",
+        shiftLabel = shiftLabel ?: remarks ?: "",
+        shortCode = shortCode ?: remarks ?: ""
     )
 }
 

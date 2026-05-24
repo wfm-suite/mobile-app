@@ -33,6 +33,11 @@ fun DropdownSelector(
     onItemSelected: (String) -> Unit
 ) {
     var expanded by remember { mutableStateOf(false) }
+    
+    // Safety check for empty list
+    if (items.isEmpty()) {
+        return
+    }
 
     Row(
         modifier = modifier

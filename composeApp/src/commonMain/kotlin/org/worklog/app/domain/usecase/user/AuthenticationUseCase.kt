@@ -7,8 +7,16 @@ import org.worklog.app.domain.repository.UserRepository
 class AuthenticationUseCase(
     private val userRepository: UserRepository
 ) {
+    suspend fun login(username: String, password: String): ResultWrapper<UserInfo> {
+        return userRepository.login(username, password)
+    }
+
     suspend fun sendOtp(phone: String): ResultWrapper<String> {
         return userRepository.sendOtp(phone)
+    }
+
+    suspend fun resendOtp(phone: String): ResultWrapper<String> {
+        return userRepository.resendOtp(phone)
     }
 
     suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<UserInfo> {
@@ -18,9 +26,4 @@ class AuthenticationUseCase(
     suspend fun logout(): ResultWrapper<Unit> {
         return userRepository.logout()
     }
-
-    // -- email login (commented out, restore if needed) --
-    // suspend fun login(username: String, password: String): ResultWrapper<UserInfo> {
-    //     return userRepository.login(username, password)
-    // }
 }

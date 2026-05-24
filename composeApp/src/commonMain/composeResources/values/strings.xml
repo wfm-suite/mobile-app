@@ -45,9 +45,14 @@
     <string name="token">Token</string>
     <string name="code">Code</string>
     <string name="phone_number">Phone Number</string>
-    <string name="enter_otp">Enter OTP</string>
     <string name="send_otp">Send OTP</string>
+    <string name="enter_otp">Enter OTP</string>
     <string name="verify">Verify</string>
-    <string name="change_number">Change Number</string>
-    <string name="otp_sent">OTP sent to your number</string>
+    <string name="otp_sent_to">OTP sent to</string>
+    <string name="resend_otp">Resend OTP</string>
+    <string name="resend_in">Resend in</string>
+    <string name="enter_phone_title">Enter your phone number</string>
+    <string name="enter_otp_title">Verify your phone</string>
+    <string name="login_with_phone">Phone</string>
+    <string name="login_with_email">Email</string>
 </resources>

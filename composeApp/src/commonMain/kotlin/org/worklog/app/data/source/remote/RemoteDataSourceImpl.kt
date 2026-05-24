@@ -8,8 +8,10 @@ import org.worklog.app.data.model.HolidayRequest
 import org.worklog.app.data.model.LeaveResponse
 import org.worklog.app.data.model.LoginResponse
 import org.worklog.app.data.model.MonthlyRotaResponse
+import org.worklog.app.data.model.OpenRotaResponse
 import org.worklog.app.data.model.RotaHanoverRequest
 import org.worklog.app.data.model.RotaResponse
+import org.worklog.app.data.model.TimeCardResponse
 import org.worklog.app.data.model.UpcomingEmployeeRotaResponse
 import org.worklog.app.data.model.UpcomingRotaResponse
 import org.worklog.app.data.model.UpdateProfileRequest
@@ -23,35 +25,38 @@ class RemoteDataSourceImpl(
     val apiService: ApiService
 ) : RemoteDataSource {
 
-    private val baseUrl = "https://gbspares.com/api/app"
+    private val baseUrl = "https://mobile-api.gbspares.com/api/app"
+
+    override suspend fun login(
+        email: String,
+        password: String
+    ): ResultWrapper<BaseResponse<LoginResponse>> {
+        return apiService.postForm<BaseResponse<LoginResponse>>(
+            endpoint = "${baseUrl}/login",
+            formData = mapOf("email" to email, "password" to password)
+        )
+    }
 
     override suspend fun sendOtp(phone: String): ResultWrapper<BaseResponse<Unit>> {
-        val formData = mapOf("phone" to phone)
-        return apiService.postForm<BaseResponse<Unit>>(
-            endpoint = "${baseUrl}/auth/phone/otp",
-            formData = formData
+        return apiService.post<BaseResponse<Unit>>(
+            endpoint = "${baseUrl}/auth/otp/send",
+            body = mapOf("phone" to phone)
         )
     }
 
-    override suspend fun verifyOtp(
-        phone: String,
-        otp: String
-    ): ResultWrapper<BaseResponse<LoginResponse>> {
-        val formData = mapOf(
-            "phone" to phone,
-            "otp" to otp
-        )
-        return apiService.postForm<BaseResponse<LoginResponse>>(
-            endpoint = "${baseUrl}/auth/phone/login",
-            formData = formData
+    override suspend fun resendOtp(phone: String): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post<BaseResponse<Unit>>(
+            endpoint = "${baseUrl}/auth/otp/resend",
+            body = mapOf("phone" to phone)
         )
     }
 
-    // -- email login (commented out, restore if needed) --
-    // override suspend fun login(email: String, password: String): ResultWrapper<BaseResponse<LoginResponse>> {
-    //     val formData = mapOf("email" to email, "password" to password)
-    //     return apiService.postForm<BaseResponse<LoginResponse>>(endpoint = "${baseUrl}/login", formData = formData)
-    // }
+    override suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<BaseResponse<LoginResponse>> {
+        return apiService.post<BaseResponse<LoginResponse>>(
+            endpoint = "${baseUrl}/auth/otp/verify",
+            body = mapOf("phone" to phone, "otp" to otp)
+        )
+    }
 
     override suspend fun forgotPassword(email: String): ResultWrapper<BaseResponse<Unit>> {
         val formData = mapOf(
@@ -120,6 +125,20 @@ class RemoteDataSourceImpl(
         )
     }
 
+    override suspend fun getAuthUserMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<BaseResponse<RotaResponse>> {
+        val formData = mapOf(
+            "month" to month.toString(),
+            "year" to year.toString()
+        )
+        return apiService.postForm<BaseResponse<RotaResponse>>(
+            endpoint = "${baseUrl}/rota/month/auth-user",
+            formData = formData
+        )
+    }
+
     override suspend fun getRotaByUserId(userId: Int): ResultWrapper<BaseResponse<RotaResponse>> {
         val formData = mapOf(
             "employee_id" to userId
@@ -139,6 +158,19 @@ class RemoteDataSourceImpl(
     override suspend fun getAllUsersMonthlyRota(): ResultWrapper<BaseResponse<MonthlyRotaResponse>> {
         return apiService.get<BaseResponse<MonthlyRotaResponse>>(
             endpoint = "${baseUrl}/rota/month/all"
+        )
+    }
+
+    override suspend fun getAllUsersMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<BaseResponse<MonthlyRotaResponse>> {
+        return apiService.get<BaseResponse<MonthlyRotaResponse>>(
+            endpoint = "${baseUrl}/rota/month/all",
+            parameters = mapOf(
+                "month" to month.toString(),
+                "year" to year.toString()
+            )
         )
     }
 
@@ -229,6 +261,26 @@ class RemoteDataSourceImpl(
         return apiService.post<BaseResponse<Unit>>(
             endpoint = "${baseUrl}/handover/handover-request",
             body = hanoverRequest
+        )
+    }
+
+    override suspend fun getUpcomingOpenRota(): ResultWrapper<BaseResponse<OpenRotaResponse>> {
+        return apiService.get<BaseResponse<OpenRotaResponse>>(
+            endpoint = "${baseUrl}/rota/upcoming-open-rota"
+        )
+    }
+
+    override suspend fun getMonthlyTimeCard(
+        month: Int,
+        year: Int
+    ): ResultWrapper<BaseResponse<TimeCardResponse>> {
+        val formData = mapOf(
+            "month" to month.toString(),
+            "year" to year.toString()
+        )
+        return apiService.postForm<BaseResponse<TimeCardResponse>>(
+            endpoint = "${baseUrl}/timecard/all",
+            formData = formData
         )
     }
 

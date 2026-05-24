@@ -60,6 +60,7 @@ class ApiService(
     ): ResultWrapper<T> {
         return safeApiCall {
             httpClient.get(endpoint) {
+
                 parameters.forEach { (key, value) ->
                     parameter(key, value)
                 }
@@ -73,6 +74,7 @@ class ApiService(
     ): ResultWrapper<T> {
         return safeApiCall {
             httpClient.post(endpoint) {
+
                 contentType(ContentType.Application.Json)
                 if (body != null) {
                     setBody(body)
@@ -87,6 +89,7 @@ class ApiService(
     ): ResultWrapper<T> {
         return safeApiCall {
             httpClient.post(endpoint) {
+
                 setBody(FormDataContent(Parameters.build {
                     formData.forEach { (key, value) ->
                         append(key, value)
@@ -118,7 +121,9 @@ class ApiService(
                         }
                     )
                 }
-            )
+            ) {
+
+            }
         }
     }
 
@@ -128,6 +133,7 @@ class ApiService(
     ): ResultWrapper<T> {
         return safeApiCall {
             httpClient.put(endpoint) {
+
                 contentType(ContentType.Application.Json)
                 if (body != null) {
                     setBody(body)

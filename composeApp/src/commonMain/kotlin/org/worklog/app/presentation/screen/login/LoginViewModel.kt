@@ -2,6 +2,8 @@ package org.worklog.app.presentation.screen.login
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -13,90 +15,142 @@ import org.worklog.app.domain.usecase.user.AuthenticationUseCase
 class LoginViewModel(
     private val authenticationUseCase: AuthenticationUseCase
 ) : ViewModel() {
+
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
-    fun sendOtp() {
-        val phone = _uiState.value.phone
-        val phoneError = validatePhone(phone)
-        if (phoneError != null) {
-            _uiState.update { it.copy(phoneError = phoneError, error = phoneError) }
+    private var countdownJob: Job? = null
+
+    fun switchLoginMethod(method: LoginMethod) {
+        _uiState.update {
+            it.copy(
+                loginMethod = method,
+                error = null,
+                otpSent = false,
+                otp = "",
+                phoneError = null,
+                otpError = null,
+                emailError = null,
+                passwordError = null
+            )
+        }
+    }
+
+    // --- Email login ---
+    fun onEmailChange(email: String) {
+        _uiState.update { it.copy(email = email, emailError = null) }
+    }
+
+    fun onPasswordChange(password: String) {
+        _uiState.update { it.copy(password = password, passwordError = null) }
+    }
+
+    fun loginWithEmail() {
+        val email = _uiState.value.email.trim()
+        val password = _uiState.value.password
+
+        val emailError = if (email.isBlank()) "Email is required"
+            else if (!Regex("^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+$").matches(email)) "Invalid email"
+            else null
+        val passwordError = if (password.isBlank()) "Password is required"
+            else if (password.length < 6) "Password must be at least 6 characters"
+            else null
+
+        if (emailError != null || passwordError != null) {
+            _uiState.update { it.copy(emailError = emailError, passwordError = passwordError) }
             return
         }
+
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = authenticationUseCase.sendOtp(phone)) {
-                is ResultWrapper.Success -> {
-                    _uiState.update { it.copy(isLoading = false, step = LoginStep.OTP, error = null) }
-                }
-                is ResultWrapper.Error -> {
-                    _uiState.update { it.copy(isLoading = false, error = result.message) }
-                }
-                is ResultWrapper.Loading -> {
-                    _uiState.update { it.copy(isLoading = true) }
-                }
+            when (val result = authenticationUseCase.login(email, password)) {
+                is ResultWrapper.Success -> _uiState.update { it.copy(isLoading = false, userInfo = result.data) }
+                is ResultWrapper.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is ResultWrapper.Loading -> Unit
             }
         }
     }
 
-    fun verifyOtp() {
-        val phone = _uiState.value.phone
-        val otp = _uiState.value.otp
-        val otpError = validateOtp(otp)
-        if (otpError != null) {
-            _uiState.update { it.copy(otpError = otpError, error = otpError) }
-            return
-        }
-        viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null) }
-            when (val result = authenticationUseCase.verifyOtp(phone, otp)) {
-                is ResultWrapper.Success -> {
-                    _uiState.update {
-                        it.copy(userInfo = result.data, isLoggedIn = true, isLoading = false, error = null)
-                    }
-                }
-                is ResultWrapper.Error -> {
-                    _uiState.update { it.copy(isLoading = false, error = result.message) }
-                }
-                is ResultWrapper.Loading -> {
-                    _uiState.update { it.copy(isLoading = true) }
-                }
-            }
-        }
-    }
-
+    // --- Phone OTP login ---
     fun onPhoneChange(phone: String) {
         _uiState.update { it.copy(phone = phone, phoneError = null) }
     }
 
     fun onOtpChange(otp: String) {
-        _uiState.update { it.copy(otp = otp, otpError = null) }
+        if (otp.length <= 6) _uiState.update { it.copy(otp = otp, otpError = null) }
+    }
+
+    fun sendOtp() {
+        val phone = _uiState.value.phone.trim()
+        if (phone.isBlank()) {
+            _uiState.update { it.copy(phoneError = "Phone number is required") }
+            return
+        }
+        if (phone.length < 7) {
+            _uiState.update { it.copy(phoneError = "Enter a valid phone number") }
+            return
+        }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authenticationUseCase.sendOtp(phone)) {
+                is ResultWrapper.Success -> {
+                    _uiState.update { it.copy(isLoading = false, otpSent = true, otp = "") }
+                    startResendCountdown()
+                }
+                is ResultWrapper.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is ResultWrapper.Loading -> Unit
+            }
+        }
+    }
+
+    fun verifyOtp() {
+        val otp = _uiState.value.otp.trim()
+        if (otp.length != 6) {
+            _uiState.update { it.copy(otpError = "Enter the 6-digit OTP") }
+            return
+        }
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authenticationUseCase.verifyOtp(_uiState.value.phone.trim(), otp)) {
+                is ResultWrapper.Success -> _uiState.update { it.copy(isLoading = false, userInfo = result.data) }
+                is ResultWrapper.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is ResultWrapper.Loading -> Unit
+            }
+        }
+    }
+
+    fun resendOtp() {
+        if (_uiState.value.resendCountdown > 0) return
+        val phone = _uiState.value.phone.trim()
+        _uiState.update { it.copy(otp = "") }
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isLoading = true, error = null) }
+            when (val result = authenticationUseCase.resendOtp(phone)) {
+                is ResultWrapper.Success -> {
+                    _uiState.update { it.copy(isLoading = false, error = "OTP Resent Successfully") }
+                    startResendCountdown()
+                }
+                is ResultWrapper.Error -> _uiState.update { it.copy(isLoading = false, error = result.message) }
+                is ResultWrapper.Loading -> Unit
+            }
+        }
     }
 
     fun goBackToPhone() {
-        _uiState.update { it.copy(step = LoginStep.PHONE, otp = "", otpError = null, error = null) }
+        countdownJob?.cancel()
+        _uiState.update { it.copy(otpSent = false, otp = "", otpError = null, resendCountdown = 0) }
     }
 
-    private fun validatePhone(phone: String): String? {
-        return when {
-            phone.isBlank() -> "Phone number is required"
-            phone.length < 10 -> "Enter a valid phone number"
-            else -> null
+    private fun startResendCountdown() {
+        countdownJob?.cancel()
+        countdownJob = viewModelScope.launch {
+            for (i in 60 downTo 1) {
+                _uiState.update { it.copy(resendCountdown = i) }
+                delay(1000)
+            }
+            _uiState.update { it.copy(resendCountdown = 0) }
         }
     }
-
-    private fun validateOtp(otp: String): String? {
-        return when {
-            otp.isBlank() -> "OTP is required"
-            otp.length < 4 -> "Enter a valid OTP"
-            else -> null
-        }
-    }
-
-    // -- email login (commented out, restore if needed) --
-    // fun loginUser() { ... }
-    // private fun validateEmail(email: String): String? { ... }
-    // private fun validatePassword(password: String): String? { ... }
-    // fun onEmailChange(email: String) { ... }
-    // fun onPasswordChange(password: String) { ... }
 }

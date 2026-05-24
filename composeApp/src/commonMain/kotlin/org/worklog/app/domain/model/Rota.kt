@@ -20,5 +20,7 @@ data class Rota(
     val status: RotaStatus,
     val designation: String,
     val startTimeEnabled: Boolean,
-    val floorName: String
+    val floorName: String,
+    val shiftLabel: String,
+    val shortCode: String
 )

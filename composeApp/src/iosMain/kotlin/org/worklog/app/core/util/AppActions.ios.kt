@@ -13,6 +13,10 @@ actual class AppActions {
         openUrl("sms:$phoneNumber")
     }
 
+    actual fun openMap(latitude: String, longitude: String) {
+        openUrl("http://maps.apple.com/?ll=$latitude,$longitude")
+    }
+
     private fun openUrl(urlString: String) {
         val url = NSURL.URLWithString(urlString) ?: return
         val app = UIApplication.sharedApplication

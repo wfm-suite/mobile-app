@@ -9,10 +9,10 @@ import org.worklog.app.domain.model.UserInfo
 
 interface UserRepository {
     val userProfile: Flow<ResultWrapper<UserInfo>>
+    suspend fun login(username: String, password: String): ResultWrapper<UserInfo>
     suspend fun sendOtp(phone: String): ResultWrapper<String>
+    suspend fun resendOtp(phone: String): ResultWrapper<String>
     suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<UserInfo>
-    // -- email login (commented out, restore if needed) --
-    // suspend fun login(username: String, password: String): ResultWrapper<UserInfo>
     suspend fun forgotPassword(email: String): ResultWrapper<String>
     suspend fun resetPassword(
         email: String,
@@ -26,6 +26,10 @@ interface UserRepository {
     suspend fun updateUserProfile(userInfo: UserInfo): ResultWrapper<UserInfo>
     suspend fun uploadProfileImage(imageBytes: ByteArray): ResultWrapper<String>
     suspend fun getAuthUserMonthlyRota(): ResultWrapper<List<Rota>>
+    suspend fun getAuthUserMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<List<Rota>>
     suspend fun getCurrentRota(): ResultWrapper<Rota?>
     suspend fun getUpcomingRotas(): ResultWrapper<List<Rota>>
     suspend fun getLeaveSummary(): ResultWrapper<LeaveSummary>

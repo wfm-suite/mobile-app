@@ -47,6 +47,7 @@ class ShiftViewModel(
         viewModelScope.launch {
             userProfileUseCase.getUserProfile.collect { result ->
                 if (result is ResultWrapper.Success) {
+                    println("\n\n User Profile: ${result.data}\n\n")
                     _uiState.update { it.copy(userInfo = result.data) }
                 } else if (result is ResultWrapper.Error) {
                     _uiState.update { it.copy(message = result.message) }

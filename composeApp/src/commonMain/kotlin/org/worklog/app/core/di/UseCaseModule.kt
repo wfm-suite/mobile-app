@@ -1,6 +1,7 @@
 package org.worklog.app.core.di
 
 import org.koin.dsl.module
+import org.worklog.app.domain.usecase.GetMonthlyTimeCardUseCase
 import org.worklog.app.domain.usecase.leave.GetLeaveDetailsUseCase
 import org.worklog.app.domain.usecase.leave.SubmitHolidayRequestUseCase
 import org.worklog.app.domain.usecase.preference.AuthTokenUseCase
@@ -30,7 +31,7 @@ val useCaseModule = module {
     single { PasswordResetUseCase(get()) }
 
     //Rota
-    single { GetRotaUseCase(get()) }
+    single { GetRotaUseCase(get(), get()) }
     single { EmployeeRotaUseCase(get()) }
     single { GetAuthUserRotaUseCase(get()) }
     single { ToggleShiftUseCase(get(), get()) }
@@ -39,4 +40,7 @@ val useCaseModule = module {
     // Leave
     single { GetLeaveDetailsUseCase(get()) }
     single { SubmitHolidayRequestUseCase(get()) }
+
+    // TimeCard
+    single { GetMonthlyTimeCardUseCase(get()) }
 }

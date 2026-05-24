@@ -2,7 +2,6 @@ package org.worklog.app.presentation.component
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -10,29 +9,26 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.wrapContentWidth
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import kotlinx.datetime.LocalDate
-import kotlinx.datetime.Month
 import kotlinx.datetime.TimeZone
+import kotlinx.datetime.number
 import kotlinx.datetime.todayIn
 import org.jetbrains.compose.resources.DrawableResource
 import org.jetbrains.compose.resources.painterResource
 import org.worklog.app.presentation.theme.dimens
 import worklog.composeapp.generated.resources.Res
-import worklog.composeapp.generated.resources.ic_arrow_down
 import worklog.composeapp.generated.resources.ic_calendar
-import worklog.composeapp.generated.resources.ic_filter
 import kotlin.time.Clock
 import kotlin.time.ExperimentalTime
 
@@ -44,33 +40,61 @@ fun CalendarHeader(
     floorNames: List<String> = emptyList(),
     selectedFloorName: String? = null,
     onFloorNameSelected: (String) -> Unit = {},
+    selectedMonth: Int? = null,
+    selectedYear: Int? = null,
+    onMonthYearSelected: (Int, Int) -> Unit = { _, _ -> },
     isLoading: Boolean = false,
     showFloorDropdown: Boolean = false
 ) {
     val today = Clock.System.todayIn(TimeZone.currentSystemDefault())
-    val monthName = when (today.month) {
-        Month.JANUARY -> "January"
-        Month.FEBRUARY -> "February"
-        Month.MARCH -> "March"
-        Month.APRIL -> "April"
-        Month.MAY -> "May"
-        Month.JUNE -> "June"
-        Month.JULY -> "July"
-        Month.AUGUST -> "August"
-        Month.SEPTEMBER -> "September"
-        Month.OCTOBER -> "October"
-        Month.NOVEMBER -> "November"
-        Month.DECEMBER -> "December"
+    
+    // Generate previous 12 months
+    val monthYearOptions = remember {
+        buildList {
+            var currentMonth = today.month.number
+            var currentYear = today.year
+            
+            repeat(12) {
+                add(MonthYearOption(currentMonth, currentYear))
+                currentMonth--
+                if (currentMonth < 1) {
+                    currentMonth = 12
+                    currentYear--
+                }
+            }
+        }
     }
-    val currentMonthYear = "$monthName ${today.year}"
+    
+    val currentMonthYear = selectedMonth?.let { month ->
+        selectedYear?.let { year ->
+            val monthName = getMonthName(month)
+            "$monthName $year"
+        }
+    } ?: run {
+        val monthName = getMonthName(today.month.number)
+        "$monthName ${today.year}"
+    }
+    
+    val monthYearLabels = monthYearOptions.map { option ->
+        "${getMonthName(option.month)} ${option.year}"
+    }
+    
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
     ) {
 
-        MonthSelector(
-            month = currentMonthYear,
-            onClick = {}
+        DropdownSelector(
+            modifier = Modifier.wrapContentWidth(),
+            items = monthYearLabels,
+            selectedItem = currentMonthYear,
+            onItemSelected = { selected ->
+                val index = monthYearLabels.indexOf(selected)
+                if (index >= 0) {
+                    val option = monthYearOptions[index]
+                    onMonthYearSelected(option.month, option.year)
+                }
+            }
         )
 
         Spacer(Modifier.weight(1f))
@@ -79,7 +103,7 @@ fun CalendarHeader(
             if (isLoading) {
                 ShimmerBox(
                     modifier = Modifier.weight(1f),
-                    height = 28.dp, // Approximate height of the tab layout
+                    height = 28.dp,
                     cornerRadius = dimens.cornerRadiusMedium
                 )
             } else {
@@ -103,13 +127,29 @@ fun CalendarHeader(
             icon = Res.drawable.ic_calendar,
             onClick = onCalendarClick
         )
+    }
+}
 
-        /*Spacer(Modifier.width(dimens.spaceBetween))
+private data class MonthYearOption(
+    val month: Int,
+    val year: Int
+)
 
-        HeaderIconButton(
-            icon = Res.drawable.ic_filter,
-            onClick = {},
-        )*/
+private fun getMonthName(month: Int): String {
+    return when (month) {
+        1 -> "January"
+        2 -> "February"
+        3 -> "March"
+        4 -> "April"
+        5 -> "May"
+        6 -> "June"
+        7 -> "July"
+        8 -> "August"
+        9 -> "September"
+        10 -> "October"
+        11 -> "November"
+        12 -> "December"
+        else -> "Unknown"
     }
 }
 
@@ -134,33 +174,6 @@ private fun CurrentDayDisplay(day: String) {
                 color = primaryColor,
                 textAlign = TextAlign.Center
             )
-        )
-    }
-}
-
-@Composable
-private fun MonthSelector(
-    month: String,
-    onClick: () -> Unit
-) {
-    Row(
-        //modifier = Modifier.clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = month,
-            style = MaterialTheme.typography.bodyLarge.copy(
-                color = MaterialTheme.colorScheme.secondary
-            )
-        )
-
-        Spacer(Modifier.width(5.dp))
-
-        Icon(
-            painter = painterResource(Res.drawable.ic_arrow_down),
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(10.dp)
         )
     }
 }

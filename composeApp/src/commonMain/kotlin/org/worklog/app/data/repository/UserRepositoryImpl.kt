@@ -6,6 +6,7 @@ import org.worklog.app.core.util.ResultWrapper
 import org.worklog.app.data.mapper.toDomain
 import org.worklog.app.data.mapper.toDomainModel
 import org.worklog.app.data.mapper.toUpdateProfileRequest
+import org.worklog.app.data.provider.AuthTokenProvider
 import org.worklog.app.data.source.local.PreferenceDataSource
 import org.worklog.app.data.source.remote.RemoteDataSource
 import org.worklog.app.data.util.handleApiResponse
@@ -20,6 +21,7 @@ import org.worklog.app.domain.repository.UserRepository
 class UserRepositoryImpl(
     private val remoteDataSource: RemoteDataSource,
     private val preferenceDataSource: PreferenceDataSource,
+    private val authTokenProvider: AuthTokenProvider,
 ) : UserRepository {
 
     private val _userProfile = MutableStateFlow<ResultWrapper<UserInfo>>(ResultWrapper.Loading)
@@ -55,18 +57,19 @@ class UserRepositoryImpl(
         }
     }
 
-    override suspend fun sendOtp(phone: String): ResultWrapper<String> {
-        return handleSuccessResponse {
-            remoteDataSource.sendOtp(phone)
-        }
-    }
-
-    override suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<UserInfo> {
+    override suspend fun login(
+        username: String,
+        password: String
+    ): ResultWrapper<UserInfo> {
         return handleApiResponse(
             call = {
-                val result = remoteDataSource.verifyOtp(phone, otp)
+                val result = remoteDataSource.login(username, password)
                 if (result is ResultWrapper.Success) {
-                    result.data.data?.token?.let { preferenceDataSource.saveAuthToken(it) }
+                    val token = result.data.data?.accessToken ?: result.data.data?.token
+                    token?.let {
+                        authTokenProvider.setToken(it)
+                        preferenceDataSource.saveAuthToken(it)
+                    }
                 }
                 result
             },
@@ -74,19 +77,30 @@ class UserRepositoryImpl(
         )
     }
 
-    // -- email login (commented out, restore if needed) --
-    // override suspend fun login(username: String, password: String): ResultWrapper<UserInfo> {
-    //     return handleApiResponse(
-    //         call = {
-    //             val result = remoteDataSource.login(username, password)
-    //             if (result is ResultWrapper.Success) {
-    //                 result.data.data?.token?.let { preferenceDataSource.saveAuthToken(it) }
-    //             }
-    //             result
-    //         },
-    //         mapper = { it.user.toDomainModel() }
-    //     )
-    // }
+    override suspend fun sendOtp(phone: String): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.sendOtp(phone) }
+    }
+
+    override suspend fun resendOtp(phone: String): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.resendOtp(phone) }
+    }
+
+    override suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<UserInfo> {
+        return handleApiResponse(
+            call = {
+                val result = remoteDataSource.verifyOtp(phone, otp)
+                if (result is ResultWrapper.Success) {
+                    val token = result.data.data?.accessToken ?: result.data.data?.token
+                    token?.let {
+                        authTokenProvider.setToken(it)
+                        preferenceDataSource.saveAuthToken(it)
+                    }
+                }
+                result
+            },
+            mapper = { it.user.toDomainModel() }
+        )
+    }
 
     override suspend fun forgotPassword(email: String): ResultWrapper<String> {
         return handleSuccessResponse {
@@ -106,6 +120,7 @@ class UserRepositoryImpl(
     }
 
     override suspend fun logout(): ResultWrapper<Unit> {
+        authTokenProvider.clearToken()
         preferenceDataSource.saveAuthToken("")
         _userProfile.value = ResultWrapper.Loading
         return ResultWrapper.Success(Unit)
@@ -115,6 +130,17 @@ class UserRepositoryImpl(
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleApiResponse(
             call = { remoteDataSource.getAuthUserMonthlyRota() },
+            mapper = { it.rotas.map { it.toDomainModel(user?.designation ?: "Your Designation") } }
+        )
+    }
+
+    override suspend fun getAuthUserMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<List<Rota>> {
+        val user = (_userProfile.value as? ResultWrapper.Success)?.data
+        return handleApiResponse(
+            call = { remoteDataSource.getAuthUserMonthlyRotaByMonthYear(month, year) },
             mapper = { it.rotas.map { it.toDomainModel(user?.designation ?: "Your Designation") } }
         )
     }

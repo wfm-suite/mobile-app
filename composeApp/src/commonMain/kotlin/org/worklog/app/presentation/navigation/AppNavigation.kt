@@ -1,5 +1,6 @@
 package org.worklog.app.presentation.navigation
 
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.add
 import androidx.compose.foundation.layout.ime
@@ -28,6 +29,8 @@ import org.worklog.app.presentation.screen.swap.RotaSwapScreen
 import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.LocalSnackBarHostState
 
+import org.worklog.app.presentation.theme.LocalRootNavController
+
 @Composable
 fun AppNavigation(
     navController: NavHostController,
@@ -50,15 +53,18 @@ fun AppNavigation(
                 )
             }
         },
-    ) {
+    ) { innerPadding ->
         CompositionLocalProvider(
             LocalSnackBarHostState provides snackBarHostState,
-            LocalNavController provides navController
+            LocalNavController provides navController,
+            LocalRootNavController provides navController
         ) {
-            AppNavHost(
-                navController = navController,
-                initialScreen = initialScreen
-            )
+            Box(modifier = Modifier.padding(innerPadding)) {
+                AppNavHost(
+                    navController = navController,
+                    initialScreen = initialScreen
+                )
+            }
         }
     }
 }

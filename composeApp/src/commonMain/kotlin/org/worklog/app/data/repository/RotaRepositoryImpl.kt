@@ -49,6 +49,22 @@ class RotaRepositoryImpl(
         )
     }
 
+    override suspend fun getAllUsersMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<List<EmployeeRota>> {
+        return handleApiResponse(
+            call = { remoteDataSource.getAllUsersMonthlyRotaByMonthYear(month, year) },
+            mapper = { response ->
+                response.rotas.flatMap { employeeRota ->
+                    employeeRota.rotas.map { rota ->
+                        rota.toEmployeeRota(employeeRota.employee)
+                    }
+                }
+            }
+        )
+    }
+
     override suspend fun getUpcomingRotasExceptAuthUser(): ResultWrapper<List<EmployeeRota>> {
         return handleApiResponse(
             call = remoteDataSource::getUpcomingRotasExceptAuthUser,
@@ -85,6 +101,15 @@ class RotaRepositoryImpl(
                     rotaId = rotaId
                 )
             },
+        )
+    }
+
+    override suspend fun getUpcomingOpenRota(): ResultWrapper<List<Rota>> {
+        return handleApiResponse(
+            call = remoteDataSource::getUpcomingOpenRota,
+            mapper = { response ->
+                response.rotas.map { it.toDomainModel("Open Rota") }
+            }
         )
     }
 }

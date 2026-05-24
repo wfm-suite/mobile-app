@@ -6,5 +6,7 @@ import androidx.navigation.NavHostController
 
 val LocalNavController =
     staticCompositionLocalOf<NavHostController> { error("NavHostController must be provided") }
+val LocalRootNavController =
+    staticCompositionLocalOf<NavHostController> { error("Root NavHostController must be provided") }
 val LocalSnackBarHostState =
     staticCompositionLocalOf<SnackbarHostState> { error("SnackBarHostState must be provided") }

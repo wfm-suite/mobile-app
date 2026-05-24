@@ -7,6 +7,8 @@ class EmployeeRotaUseCase(
 ) {
     suspend fun getAllUsersWeeklyRota() = repository.getAllUsersWeeklyRota()
     suspend fun getAllUsersMonthlyRota() = repository.getAllUsersMonthlyRota()
+    suspend fun getAllUsersMonthlyRotaByMonthYear(month: Int, year: Int) = 
+        repository.getAllUsersMonthlyRotaByMonthYear(month, year)
 
     suspend fun getUpcomingRotasExceptAuthUser() = repository.getUpcomingRotasExceptAuthUser()
 }

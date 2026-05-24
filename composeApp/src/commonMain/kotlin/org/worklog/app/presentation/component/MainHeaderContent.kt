@@ -1,27 +1,17 @@
 package org.worklog.app.presentation.component
 
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Notifications
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import org.jetbrains.compose.resources.painterResource
-import org.worklog.app.presentation.theme.dimens
-import worklog.composeapp.generated.resources.Res
-import worklog.composeapp.generated.resources.ic_notification
 
 @Composable
 fun MainHeaderContent(
@@ -31,61 +21,53 @@ fun MainHeaderContent(
     userName: String = "",
     date: String = "",
     onNotificationClick: () -> Unit = {},
+    onMapClick: () -> Unit = {}, // Keep for compatibility but image shows top right notification
 ) {
-
     Row(
-        modifier = modifier.fillMaxWidth()
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(horizontal = 4.dp, vertical = 8.dp),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
-        Column(
-            modifier = Modifier.weight(1f),
-        ) {
+        Column(modifier = Modifier.weight(1f)) {
             if (isLoading) {
-                val whiteShimmerColors = listOf(
-                    Color.White.copy(alpha = 0.6f),
-                    Color.White.copy(alpha = 0.2f),
-                    Color.White.copy(alpha = 0.6f),
-                )
                 ShimmerBox(
-                    height = 28.dp,
-                    width = 200.dp,
+                    height = 24.dp,
+                    width = 150.dp,
                     cornerRadius = 4.dp,
-                    shimmerColors = whiteShimmerColors
-                )
-                Spacer(modifier = Modifier.padding(2.dp))
-                ShimmerBox(
-                    height = 16.dp,
-                    width = 120.dp,
-                    cornerRadius = 4.dp,
-                    shimmerColors = whiteShimmerColors
+                    shimmerColors = listOf(Color.White.copy(0.3f), Color.White.copy(0.1f), Color.White.copy(0.3f))
                 )
             } else {
                 Text(
                     text = "$greetingText, $userName",
-                    style = MaterialTheme.typography.headlineSmall.copy(
-                        color = MaterialTheme.colorScheme.onPrimary
+                    style = MaterialTheme.typography.titleLarge.copy(
+                        color = Color.White,
+                        fontWeight = FontWeight.Bold,
+                        fontSize = 20.sp
                     )
                 )
-                Text(
-                    text = date,
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        color = MaterialTheme.colorScheme.onPrimary,
-                        fontSize = 12.sp,
-                        fontWeight = FontWeight.Medium
+                if (date.isNotBlank()) {
+                    Text(
+                        text = date,
+                        style = MaterialTheme.typography.bodySmall.copy(
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 13.sp
+                        )
                     )
-                )
+                }
             }
         }
+        
         IconButton(
-            modifier = Modifier
-                .clip(RoundedCornerShape(dimens.cornerRadiusSmall))
-                .size(dimens.vectorImageSize),
             onClick = onNotificationClick,
+            modifier = Modifier.size(32.dp)
         ) {
             Icon(
-                modifier = Modifier.padding(5.dp),
-                painter = painterResource(Res.drawable.ic_notification),
-                contentDescription = "Notification",
-                tint = MaterialTheme.colorScheme.onPrimary
+                imageVector = Icons.Default.Notifications,
+                contentDescription = "Notifications",
+                tint = Color.White,
+                modifier = Modifier.size(24.dp)
             )
         }
     }

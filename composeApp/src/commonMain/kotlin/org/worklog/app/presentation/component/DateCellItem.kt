@@ -84,36 +84,18 @@ private fun shiftColors(
     isSelected: Boolean
 ): Pair<Color, Color> {
     if (!isEnabled) {
-        return MaterialTheme.colorScheme.surfaceBright to MaterialTheme.colorScheme.outline
+        return MaterialTheme.colorScheme.surfaceBright to
+                MaterialTheme.colorScheme.outline
     }
     if (isSelected) {
         return MaterialTheme.colorScheme.tertiaryFixed to MaterialTheme.colorScheme.onBackground
     }
-    val upper = shift.uppercase().trim()
-    if (upper == "OFF" || upper.isBlank()) {
-        return MaterialTheme.colorScheme.surfaceDim to MaterialTheme.colorScheme.onBackground
+    return when (shift) {
+        "NS","N" -> MaterialTheme.colorScheme.secondary to MaterialTheme.colorScheme.onSecondary
+        "LD" -> MaterialTheme.colorScheme.onPrimary to MaterialTheme.colorScheme.onBackground
+        else -> MaterialTheme.colorScheme.surfaceDim to MaterialTheme.colorScheme.onBackground
     }
-    // Dynamic colour — any code from the database gets a consistent colour
-    // derived from the code string itself, so new codes work automatically.
-    val bg = shiftCodeBackground(upper)
-    return bg to Color.White
 }
-
-private val shiftColorPalette = listOf(
-    Color(0xFF1565C0),  // blue        – e.g. D (Day)
-    Color(0xFF1A237E),  // dark navy   – e.g. N (Night)
-    Color(0xFF2E7D32),  // green       – e.g. L (Long)
-    Color(0xFF00695C),  // teal        – e.g. L1D
-    Color(0xFFE65100),  // deep orange – e.g. LD
-    Color(0xFF6A1B9A),  // purple      – e.g. NS
-    Color(0xFF0277BD),  // light blue
-    Color(0xFF558B2F),  // olive
-    Color(0xFFC62828),  // red
-    Color(0xFF00838F),  // cyan
-)
-
-private fun shiftCodeBackground(code: String): Color =
-    shiftColorPalette[kotlin.math.abs(code.hashCode()) % shiftColorPalette.size]
 
 @Preview(showBackground = true)
 @Composable

@@ -7,7 +7,9 @@ import org.worklog.app.data.model.EmployeeListResponse
 import org.worklog.app.data.model.LeaveResponse
 import org.worklog.app.data.model.LoginResponse
 import org.worklog.app.data.model.MonthlyRotaResponse
+import org.worklog.app.data.model.OpenRotaResponse
 import org.worklog.app.data.model.RotaResponse
+import org.worklog.app.data.model.TimeCardResponse
 import org.worklog.app.data.model.UpcomingEmployeeRotaResponse
 import org.worklog.app.data.model.UpcomingRotaResponse
 import org.worklog.app.data.model.UpdateProfileRequest
@@ -15,10 +17,10 @@ import org.worklog.app.data.model.WeeklyRotaResponse
 
 interface RemoteDataSource {
 
+    suspend fun login(email: String, password: String): ResultWrapper<BaseResponse<LoginResponse>>
     suspend fun sendOtp(phone: String): ResultWrapper<BaseResponse<Unit>>
+    suspend fun resendOtp(phone: String): ResultWrapper<BaseResponse<Unit>>
     suspend fun verifyOtp(phone: String, otp: String): ResultWrapper<BaseResponse<LoginResponse>>
-    // -- email login (commented out, restore if needed) --
-    // suspend fun login(email: String, password: String): ResultWrapper<BaseResponse<LoginResponse>>
     suspend fun forgotPassword(email: String): ResultWrapper<BaseResponse<Unit>>
     suspend fun resetPassword(
         email: String,
@@ -39,9 +41,17 @@ interface RemoteDataSource {
     suspend fun getAuthUserUpcomingRota(): ResultWrapper<BaseResponse<UpcomingRotaResponse>>
     suspend fun getAuthUserCurrentRota(): ResultWrapper<BaseResponse<CurrentRotaResponse>>
     suspend fun getAuthUserMonthlyRota(): ResultWrapper<BaseResponse<RotaResponse>>
+    suspend fun getAuthUserMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<BaseResponse<RotaResponse>>
     suspend fun getRotaByUserId(userId: Int): ResultWrapper<BaseResponse<RotaResponse>>
     suspend fun getAllUsersWeeklyRota(): ResultWrapper<BaseResponse<WeeklyRotaResponse>>
     suspend fun getAllUsersMonthlyRota(): ResultWrapper<BaseResponse<MonthlyRotaResponse>>
+    suspend fun getAllUsersMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<BaseResponse<MonthlyRotaResponse>>
     suspend fun getUpcomingRotasExceptAuthUser(): ResultWrapper<BaseResponse<UpcomingEmployeeRotaResponse>>
     suspend fun getLeaveDetails(): ResultWrapper<BaseResponse<LeaveResponse>>
     suspend fun requestHoliday(
@@ -71,4 +81,11 @@ interface RemoteDataSource {
     suspend fun rotaHanoverRequest(
         rotaId: Int,
     ): ResultWrapper<BaseResponse<Unit>>
+
+    suspend fun getUpcomingOpenRota(): ResultWrapper<BaseResponse<OpenRotaResponse>>
+
+    suspend fun getMonthlyTimeCard(
+        month: Int,
+        year: Int
+    ): ResultWrapper<BaseResponse<TimeCardResponse>>
 }

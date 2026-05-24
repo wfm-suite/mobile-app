@@ -2,29 +2,28 @@ package org.worklog.app.data.provider
 
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.runBlocking
 import org.worklog.app.domain.repository.PreferenceRepository
 
 class AuthTokenProvider(
-    private val preferenceRepository: PreferenceRepository
+    preferenceRepository: PreferenceRepository
 ) {
-    @Volatile
-    private var token: String = ""
+    private val scope = CoroutineScope(Dispatchers.IO + SupervisorJob())
+    private val _tokenState = MutableStateFlow("")
 
     init {
-        // Load token synchronously on first access to prevent race condition,
-        // then keep it updated in the background.
-        runBlocking {
-            token = preferenceRepository.getAuthToken().first()
-        }
-        CoroutineScope(Dispatchers.Default).launch {
-            preferenceRepository.getAuthToken().collect {
-                token = it
-            }
+        scope.launch {
+            preferenceRepository.getAuthToken().collect { _tokenState.value = it }
         }
     }
 
-    fun getTokenOrEmpty(): String = token
+    fun getTokenOrEmpty(): String = _tokenState.value
+
+    // Immediately update in-memory token so subsequent requests use it without
+    // waiting for the DataStore → Flow → StateFlow propagation cycle.
+    fun setToken(token: String) { _tokenState.value = token }
+
+    fun clearToken() { _tokenState.value = "" }
 }

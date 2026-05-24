@@ -26,4 +26,12 @@ actual class AppActions : KoinComponent {
         }
         context.startActivity(intent)
     }
+
+    actual fun openMap(latitude: String, longitude: String) {
+        val gmmIntentUri = "geo:$latitude,$longitude?q=$latitude,$longitude".toUri()
+        val mapIntent = Intent(Intent.ACTION_VIEW, gmmIntentUri).apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK
+        }
+        context.startActivity(mapIntent)
+    }
 }

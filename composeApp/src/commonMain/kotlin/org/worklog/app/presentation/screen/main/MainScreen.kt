@@ -16,6 +16,9 @@ import org.worklog.app.presentation.screen.message.MessageScreen
 import org.worklog.app.presentation.screen.profile.ProfileScreen
 import org.worklog.app.presentation.screen.rota.RotaScreen
 
+import androidx.compose.runtime.CompositionLocalProvider
+import org.worklog.app.presentation.theme.LocalNavController
+
 @Composable
 fun MainScreen() {
     MainScreenContent()
@@ -26,34 +29,38 @@ private fun MainScreenContent() {
 
     val navController = rememberNavController()
 
-    Scaffold(
-        modifier = Modifier.fillMaxSize(),
-        bottomBar = {
-            AppBottomNavigation(
-                modifier = Modifier.navigationBarsPadding(),
-                navController = navController
-            )
-        }
+    CompositionLocalProvider(
+        LocalNavController provides navController
     ) {
-        NavHost(
+        Scaffold(
             modifier = Modifier.fillMaxSize(),
-            navController = navController,
-            startDestination = ScreenRoute.Home
+            bottomBar = {
+                AppBottomNavigation(
+                    modifier = Modifier.navigationBarsPadding(),
+                    navController = navController
+                )
+            }
         ) {
-            appNavComposable<ScreenRoute.Home> {
-                HomeScreen()
-            }
-            appNavComposable<ScreenRoute.Rota> {
-                RotaScreen()
-            }
-            appNavComposable<ScreenRoute.Message> {
-                MessageScreen()
-            }
-            appNavComposable<ScreenRoute.Leave> {
-                LeaveScreen()
-            }
-            appNavComposable<ScreenRoute.Profile> {
-                ProfileScreen()
+            NavHost(
+                modifier = Modifier.fillMaxSize(),
+                navController = navController,
+                startDestination = ScreenRoute.Home
+            ) {
+                appNavComposable<ScreenRoute.Home> {
+                    HomeScreen()
+                }
+                appNavComposable<ScreenRoute.Rota> {
+                    RotaScreen()
+                }
+                appNavComposable<ScreenRoute.Message> {
+                    MessageScreen()
+                }
+                appNavComposable<ScreenRoute.Leave> {
+                    LeaveScreen()
+                }
+                appNavComposable<ScreenRoute.Profile> {
+                    ProfileScreen()
+                }
             }
         }
     }

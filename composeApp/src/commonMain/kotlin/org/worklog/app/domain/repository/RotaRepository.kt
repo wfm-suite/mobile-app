@@ -8,6 +8,10 @@ interface RotaRepository {
     suspend fun getRotaByUserId(userId: Int): ResultWrapper<List<Rota>>
     suspend fun getAllUsersWeeklyRota(): ResultWrapper<List<EmployeeRota>>
     suspend fun getAllUsersMonthlyRota(): ResultWrapper<List<EmployeeRota>>
+    suspend fun getAllUsersMonthlyRotaByMonthYear(
+        month: Int,
+        year: Int
+    ): ResultWrapper<List<EmployeeRota>>
     suspend fun getUpcomingRotasExceptAuthUser(): ResultWrapper<List<EmployeeRota>>
 
     suspend fun rotaSwapRequest(
@@ -18,5 +22,7 @@ interface RotaRepository {
     suspend fun rotaHanoverRequest(
         rotaId: Int,
     ): ResultWrapper<String>
+
+    suspend fun getUpcomingOpenRota(): ResultWrapper<List<Rota>>
 
 }
