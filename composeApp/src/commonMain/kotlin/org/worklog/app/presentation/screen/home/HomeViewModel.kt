@@ -49,7 +49,11 @@ class HomeViewModel(
     fun loadHomeShifts() {
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
-            val result = rotaUseCase.getLastNDaysRota(40)
+            var result = rotaUseCase.getLastNDaysRota(40)
+            if (result !is ResultWrapper.Success || (result as ResultWrapper.Success).data.isEmpty()) {
+                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
+                result = rotaUseCase.getMonthlyRota(now.month.number, now.year)
+            }
             if (result is ResultWrapper.Success) {
                 val rotas = result.data
                 _uiState.update {
