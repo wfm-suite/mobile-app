@@ -23,7 +23,6 @@ import org.worklog.app.presentation.component.MainHeaderContent
 import org.worklog.app.presentation.component.ShimmerBox
 import org.worklog.app.presentation.component.UpcomingShiftCard
 import org.worklog.app.presentation.navigation.ScreenRoute
-import org.worklog.app.core.util.rememberOpenMapAction
 import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.LocalRootNavController
 import org.worklog.app.presentation.theme.LocalSnackBarHostState
@@ -32,6 +31,10 @@ import kotlin.time.Clock
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.number
 import kotlinx.datetime.toLocalDateTime
+
+// Figma tokens not in Color.kt — kept here for visual parity with Node 2129:16725
+private val FigmaCardBackground = Color(0xFFF2FCFF)
+private val FigmaOuterPadding = 24.dp
 
 @Composable
 fun HomeScreen(
@@ -42,10 +45,6 @@ fun HomeScreen(
     val rootNavController = LocalRootNavController.current
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
-
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
             snackbarHostState.showSnackbar(it)
@@ -53,8 +52,14 @@ fun HomeScreen(
         }
     }
 
-    val openMap = rememberOpenMapAction { lat, lon ->
-        viewModel.updateLocation(lat, lon)
+    val openMap = { lat: String, lon: String ->
+        navController.navigate(
+            ScreenRoute.Map(
+                latitude = lat.toDoubleOrNull() ?: 51.5079111,
+                longitude = lon.toDoubleOrNull() ?: -0.0903026,
+                label = uiState.userInfo?.branchName ?: "Location"
+            )
+        )
     }
 
     HomeScreenContent(
@@ -65,8 +70,9 @@ fun HomeScreen(
         isShiftEnabled = uiState.isShiftEnabled,
         isShiftToggling = uiState.isShiftToggling,
         monthlyShifts = uiState.monthlyRotas,
-        userName = uiState.userInfo?.displayName ?: "",
+        userName = uiState.userInfo?.firstName ?: "",
         branchName = uiState.userInfo?.branchName ?: "",
+        userFloor = uiState.userInfo?.floor ?: "",
         greetingText = uiState.greetingText,
         currentDate = uiState.currentDate,
         selectedMonth = uiState.selectedMonth,
@@ -74,7 +80,7 @@ fun HomeScreen(
         rotaStartDate = uiState.rotaStartDate,
         rotaEndDate = uiState.rotaEndDate,
         onShiftStartClick = viewModel::toggleShift,
-        onMapClick = openMap,
+        onMapClick = { lat, lon -> openMap(lat, lon) },
         onSeeAllClick = { navController.navigate(ScreenRoute.Rota) },
         onUpcomingShiftClick = {
             val rotaString = Json.encodeToString(it)
@@ -112,7 +118,8 @@ private fun HomeScreenContent(
     isShiftEnabled: Boolean = false,
     isShiftToggling: Boolean = false,
     userName: String,
-    branchName: String,
+    branchName: String = "",
+    userFloor: String = "",
     greetingText: String,
     currentDate: String,
     selectedMonth: Int,
@@ -120,7 +127,7 @@ private fun HomeScreenContent(
     rotaStartDate: String = "",
     rotaEndDate: String = "",
     onShiftStartClick: () -> Unit = {},
-    onMapClick: () -> Unit = {},
+    onMapClick: (String, String) -> Unit = { _, _ -> },
     onSeeAllClick: () -> Unit = {},
     onUpcomingShiftClick: (Rota) -> Unit = {}
 ) {
@@ -128,44 +135,62 @@ private fun HomeScreenContent(
     val today = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault()).date.toString()
     var hasScrolledToToday by remember { mutableStateOf(false) }
 
+    // Auto-scroll the inner LazyColumn so today's row anchors at the top.
     LaunchedEffect(monthlyShifts) {
         if (monthlyShifts.isNotEmpty() && !hasScrolledToToday) {
             val todayIndex = monthlyShifts.indexOfFirst { it.fullDate == today }
-            val targetIndex = if (todayIndex >= 0) todayIndex else monthlyShifts.lastIndex
+            val targetIndex = if (todayIndex >= 0) todayIndex else 0
             listState.scrollToItem(targetIndex)
             hasScrolledToToday = true
         }
     }
 
-    Column(
+    Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFF9FAFB))
+            .background(Color.White)
     ) {
-        // Fixed Header Container with Dynamic Teal Background
+        // Figma: Rectangle 11 — teal banner, 200dp tall, bottom corners 24dp
         Box(
             modifier = Modifier
                 .fillMaxWidth()
+                .height(200.dp)
                 .background(
-                    color = Color(0xFF007991),
-                    shape = RoundedCornerShape(bottomStart = 32.dp, bottomEnd = 32.dp)
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = RoundedCornerShape(bottomStart = 24.dp, bottomEnd = 24.dp)
                 )
-        ) {
-            Column(
+        )
+
+        // Fixed top section + scrollable My Shifts card filling remaining height
+        Column(modifier = Modifier.fillMaxSize()) {
+            // Greeting row
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .statusBarsPadding()
-                    .padding(horizontal = dimens.horizontalPadding)
+                    .padding(horizontal = FigmaOuterPadding)
             ) {
                 MainHeaderContent(
                     greetingText = greetingText,
                     userName = userName,
+                    branchName = branchName,
                     date = currentDate,
                     onNotificationClick = {},
                     onMapClick = onMapClick
                 )
-                Spacer(modifier = Modifier.height(12.dp))
+            }
 
+            // Active Shift Card wrapper
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(
+                        top = 24.dp,
+                        bottom = 12.dp,
+                        start = FigmaOuterPadding,
+                        end = FigmaOuterPadding
+                    )
+            ) {
                 CurrentShiftContent(
                     isLoading = isLoading,
                     hasCurrentRota = hasCurrentRota,
@@ -173,76 +198,93 @@ private fun HomeScreenContent(
                     isEnabled = isShiftEnabled,
                     isShiftStarted = isShiftStarted,
                     currentRota = currentRota,
-                    branchName = branchName,
                     onStartShiftClick = onShiftStartClick,
                     onLocateMeClick = onMapClick
                 )
-                Spacer(modifier = Modifier.height(24.dp))
+            }
 
-                Row(
+            // My Shifts Card — FIXED POSITION, fills remaining vertical space
+            Card(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(
+                        start = FigmaOuterPadding,
+                        end = FigmaOuterPadding,
+                        bottom = 12.dp
+                    ),
+                shape = RoundedCornerShape(24.dp),
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                colors = CardDefaults.cardColors(containerColor = FigmaCardBackground)
+            ) {
+                Column(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 4.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.Bottom
+                        .fillMaxSize()
+                        .padding(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    Column {
-                        Text(
-                            text = "My Shifts",
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = Color.White,
-                                fontSize = 20.sp
-                            )
-                        )
-                        if (rotaStartDate.isNotBlank() && rotaEndDate.isNotBlank()) {
+                    // Header row: "My Shifts" | "see all"
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = "${formatRotaDate(rotaStartDate)} – ${formatRotaDate(rotaEndDate)}",
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    color = Color.White.copy(alpha = 0.8f),
-                                    fontSize = 12.sp
+                                text = "My Shifts",
+                                style = MaterialTheme.typography.titleLarge.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    fontSize = 20.sp,
+                                    lineHeight = 28.sp
                                 )
                             )
+                            if (rotaStartDate.isNotBlank() && rotaEndDate.isNotBlank()) {
+                                Text(
+                                    text = "${formatRotaDate(rotaStartDate)} – ${formatRotaDate(rotaEndDate)}",
+                                    style = MaterialTheme.typography.bodySmall.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        fontSize = 12.sp
+                                    )
+                                )
+                            }
                         }
-                    }
-                    Text(
-                        text = "see all",
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White,
-                            fontSize = 13.sp
-                        ),
-                        modifier = Modifier.clickable { onSeeAllClick() }
-                    )
-                }
-                Spacer(modifier = Modifier.height(16.dp))
-            }
-        }
-
-        LazyColumn(
-            state = listState,
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(
-                top = 16.dp,
-                bottom = dimens.bottomBarHeight + 32.dp
-            )
-        ) {
-            if (isLoading && monthlyShifts.isEmpty()) {
-                items(5) {
-                    Box(modifier = Modifier.padding(horizontal = dimens.horizontalPadding)) {
-                        UpcomingShiftShimmerCard()
-                    }
-                    Spacer(Modifier.height(12.dp))
-                }
-            } else {
-                itemsIndexed(monthlyShifts) { _, rota ->
-                    Box(modifier = Modifier.padding(horizontal = dimens.horizontalPadding)) {
-                        UpcomingShiftCard(
-                            shift = rota,
-                            isToday = rota.fullDate == today,
-                            onClick = onUpcomingShiftClick
+                        Text(
+                            text = "see all",
+                            style = MaterialTheme.typography.bodySmall.copy(
+                                color = MaterialTheme.colorScheme.primary,
+                                fontSize = 12.sp,
+                                letterSpacing = 0.4.sp
+                            ),
+                            modifier = Modifier.clickable { onSeeAllClick() }
                         )
                     }
-                    Spacer(Modifier.height(10.dp))
+
+                    // Shift list
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier.fillMaxSize(),
+                        verticalArrangement = Arrangement.spacedBy(12.dp),
+                        contentPadding = PaddingValues(bottom = dimens.bottomBarHeight)
+                    ) {
+                        if (isLoading && monthlyShifts.isEmpty()) {
+                            items(5) {
+                                UpcomingShiftShimmerCard()
+                            }
+                        } else {
+                            itemsIndexed(
+                                items = monthlyShifts,
+                                key = { _, rota -> rota.id }
+                            ) { _, rota ->
+                                UpcomingShiftCard(
+                                    shift = rota,
+                                    userFloor = userFloor,
+                                    isToday = rota.fullDate == today,
+                                    onClick = onUpcomingShiftClick
+                                )
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -253,11 +295,11 @@ private fun HomeScreenContent(
 fun UpcomingShiftShimmerCard() {
     Row(
         modifier = Modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
-        ShimmerBox(modifier = Modifier.width(60.dp), height = 54.dp, cornerRadius = 10.dp)
-        Spacer(modifier = Modifier.width(16.dp))
-        ShimmerBox(modifier = Modifier.weight(1f), height = 54.dp, cornerRadius = 12.dp)
+        ShimmerBox(modifier = Modifier.size(50.dp), height = 50.dp, cornerRadius = 12.dp)
+        ShimmerBox(modifier = Modifier.weight(1f), height = 50.dp, cornerRadius = 12.dp)
     }
 }
 

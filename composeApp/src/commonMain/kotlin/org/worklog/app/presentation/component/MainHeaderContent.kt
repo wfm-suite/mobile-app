@@ -1,10 +1,12 @@
 package org.worklog.app.presentation.component
 
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Notifications
-import androidx.compose.material3.*
+import androidx.compose.material.icons.outlined.Notifications
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -19,14 +21,15 @@ fun MainHeaderContent(
     isLoading: Boolean = false,
     greetingText: String = "",
     userName: String = "",
+    branchName: String = "",
     date: String = "",
     onNotificationClick: () -> Unit = {},
-    onMapClick: () -> Unit = {}, // Keep for compatibility but image shows top right notification
+    onMapClick: (String, String) -> Unit = { _, _ -> }
 ) {
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 4.dp, vertical = 8.dp),
+            .padding(vertical = 8.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween
     ) {
@@ -34,41 +37,56 @@ fun MainHeaderContent(
             if (isLoading) {
                 ShimmerBox(
                     height = 24.dp,
-                    width = 150.dp,
+                    width = 200.dp,
                     cornerRadius = 4.dp,
-                    shimmerColors = listOf(Color.White.copy(0.3f), Color.White.copy(0.1f), Color.White.copy(0.3f))
+                    shimmerColors = listOf(
+                        Color.White.copy(alpha = 0.3f),
+                        Color.White.copy(alpha = 0.1f),
+                        Color.White.copy(alpha = 0.3f)
+                    )
                 )
             } else {
+                // Displaying branch name if available
+                if (branchName.isNotBlank()) {
+                    Text(
+                        text = branchName,
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontWeight = FontWeight.Normal,
+                            fontSize = 12.sp
+                        )
+                    )
+                }
+
+                // Figma: "Good Evening, Md Hasan" — Poppins Bold, 20sp, white
+                val display = if (userName.isBlank()) greetingText else "$greetingText, $userName"
                 Text(
-                    text = "$greetingText, $userName",
+                    text = display,
                     style = MaterialTheme.typography.titleLarge.copy(
                         color = Color.White,
                         fontWeight = FontWeight.Bold,
                         fontSize = 20.sp
                     )
                 )
-                if (date.isNotBlank()) {
-                    Text(
-                        text = date,
-                        style = MaterialTheme.typography.bodySmall.copy(
-                            color = Color.White.copy(alpha = 0.8f),
-                            fontSize = 13.sp
-                        )
-                    )
-                }
             }
         }
-        
-        IconButton(
-            onClick = onNotificationClick,
-            modifier = Modifier.size(32.dp)
+
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            Icon(
-                imageVector = Icons.Default.Notifications,
-                contentDescription = "Notifications",
-                tint = Color.White,
+            IconButton(
+                onClick = onNotificationClick,
                 modifier = Modifier.size(24.dp)
-            )
+            ) {
+                // Figma: notification-02-stroke-rounded, 24x24, white
+                Icon(
+                    imageVector = Icons.Outlined.Notifications,
+                    contentDescription = "Notifications",
+                    tint = Color.White,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
     }
 }

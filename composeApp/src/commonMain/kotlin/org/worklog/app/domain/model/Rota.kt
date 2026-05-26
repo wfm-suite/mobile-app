@@ -22,5 +22,6 @@ data class Rota(
     val startTimeEnabled: Boolean,
     val floorName: String,
     val shiftLabel: String,
-    val shortCode: String
+    val shortCode: String,
+    val isLeave: Boolean = false
 )

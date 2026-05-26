@@ -48,10 +48,6 @@ fun MyTeamScreen(
     val snackBarHostState = LocalSnackBarHostState.current
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
-
     LaunchedEffect(uiState.message) {
         uiState.message?.let {
             snackBarHostState.showSnackbar(it)

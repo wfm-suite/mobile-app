@@ -5,10 +5,15 @@ import org.worklog.app.domain.repository.RotaRepository
 class EmployeeRotaUseCase(
     private val repository: RotaRepository
 ) {
-    suspend fun getAllUsersWeeklyRota() = repository.getAllUsersWeeklyRota()
-    suspend fun getAllUsersMonthlyRota() = repository.getAllUsersMonthlyRota()
-    suspend fun getAllUsersMonthlyRotaByMonthYear(month: Int, year: Int) = 
-        repository.getAllUsersMonthlyRotaByMonthYear(month, year)
+    suspend fun getAllUsersWeeklyRota(forceRefresh: Boolean = false) =
+        repository.getAllUsersWeeklyRota(forceRefresh)
 
-    suspend fun getUpcomingRotasExceptAuthUser() = repository.getUpcomingRotasExceptAuthUser()
+    suspend fun getAllUsersMonthlyRota(forceRefresh: Boolean = false) =
+        repository.getAllUsersMonthlyRota(forceRefresh)
+
+    suspend fun getAllUsersMonthlyRotaByMonthYear(month: Int, year: Int, forceRefresh: Boolean = false) =
+        repository.getAllUsersMonthlyRotaByMonthYear(month, year, forceRefresh)
+
+    suspend fun getUpcomingRotasExceptAuthUser(forceRefresh: Boolean = false) =
+        repository.getUpcomingRotasExceptAuthUser(forceRefresh)
 }

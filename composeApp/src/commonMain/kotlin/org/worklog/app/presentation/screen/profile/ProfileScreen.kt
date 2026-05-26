@@ -58,10 +58,6 @@ fun ProfileScreen(
     val navController = LocalNavController.current
     val uiState by viewModel.uiState.collectAsState()
 
-    LaunchedEffect(Unit) {
-        viewModel.refreshData()
-    }
-
     LaunchedEffect(uiState.isLoggedOut) {
         if (uiState.isLoggedOut) {
             navController.navigate(ScreenRoute.Login) {

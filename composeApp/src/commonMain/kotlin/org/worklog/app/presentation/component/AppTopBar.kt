@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.statusBarsPadding
@@ -21,13 +20,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.ui.tooling.preview.Preview
 import org.worklog.app.presentation.theme.dimens
 import worklog.composeapp.generated.resources.Res
+import worklog.composeapp.generated.resources.ic_app_banner
 import worklog.composeapp.generated.resources.ic_notification
-import worklog.composeapp.generated.resources.ic_topbar_logo
 
 @Composable
 fun TopbarWithLogo(
@@ -38,13 +38,15 @@ fun TopbarWithLogo(
         color = MaterialTheme.colorScheme.background
     ) {
         Row(
-            modifier = Modifier.fillMaxWidth()
-                .padding(dimens.horizontalPadding)
+            modifier = Modifier.fillMaxWidth(), // Touching the absolute left border
+            verticalAlignment = Alignment.CenterVertically
         ) {
             Image(
-                modifier = Modifier.height(dimens.iconSize),
-                painter = painterResource(Res.drawable.ic_topbar_logo),
-                contentDescription = null
+                modifier = Modifier
+                    .size(80.dp), // Square size for the trees-only logo
+                painter = painterResource(Res.drawable.ic_app_banner),
+                contentDescription = "Forest Trees Logo",
+                contentScale = ContentScale.Fit
             )
             Spacer(modifier = Modifier.weight(1f))
             IconButton(

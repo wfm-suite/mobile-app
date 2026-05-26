@@ -32,7 +32,7 @@ class MyTeamViewModel(
 
     fun refreshData() {
         getCurrentDate()
-        // loadEmployeeRotas will be triggered by observeUserProfile
+        _uiState.value.userInfo?.let { loadEmployeeRotas(it, forceRefresh = true) }
     }
 
     private fun getCurrentDate() {
@@ -67,20 +67,26 @@ class MyTeamViewModel(
         _uiState.update { it.copy(message = null) }
     }
 
-    private fun loadEmployeeRotas(userInfo: UserInfo?) {
+    private fun loadEmployeeRotas(userInfo: UserInfo?, forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, message = null) }
+            val isEmpty = _uiState.value.weeklyRotas.isEmpty() && _uiState.value.monthlyRotas.isEmpty()
+            if (isEmpty) {
+                _uiState.update { it.copy(isLoading = true, message = null) }
+            } else {
+                _uiState.update { it.copy(message = null) }
+            }
 
-            val weeklyDeferred = async { employeeRotaUseCase.getAllUsersWeeklyRota() }
+            val weeklyDeferred = async { employeeRotaUseCase.getAllUsersWeeklyRota(forceRefresh) }
             val monthlyDeferred = async {
                 val state = _uiState.value
                 if (state.selectedMonth != null && state.selectedYear != null) {
                     employeeRotaUseCase.getAllUsersMonthlyRotaByMonthYear(
                         state.selectedMonth,
-                        state.selectedYear
+                        state.selectedYear,
+                        forceRefresh
                     )
                 } else {
-                    employeeRotaUseCase.getAllUsersMonthlyRota()
+                    employeeRotaUseCase.getAllUsersMonthlyRota(forceRefresh)
                 }
             }
 

@@ -5,5 +5,6 @@ import org.worklog.app.domain.repository.UserRepository
 class GetLeaveDetailsUseCase(
     private val repository: UserRepository
 ) {
-    suspend operator fun invoke() = repository.getLeaveSummary()
+    suspend operator fun invoke(forceRefresh: Boolean = false) =
+        repository.getLeaveSummary(forceRefresh)
 }

@@ -25,15 +25,16 @@ interface UserRepository {
     suspend fun loadUserProfile(): ResultWrapper<UserInfo>
     suspend fun updateUserProfile(userInfo: UserInfo): ResultWrapper<UserInfo>
     suspend fun uploadProfileImage(imageBytes: ByteArray): ResultWrapper<String>
-    suspend fun getAuthUserMonthlyRota(): ResultWrapper<List<Rota>>
+    suspend fun getAuthUserMonthlyRota(forceRefresh: Boolean = false): ResultWrapper<List<Rota>>
     suspend fun getAuthUserMonthlyRotaByMonthYear(
         month: Int,
-        year: Int
+        year: Int,
+        forceRefresh: Boolean = false
     ): ResultWrapper<List<Rota>>
-    suspend fun getAuthUserRotaLastNDays(days: Int): ResultWrapper<List<Rota>>
-    suspend fun getCurrentRota(): ResultWrapper<Rota?>
-    suspend fun getUpcomingRotas(): ResultWrapper<List<Rota>>
-    suspend fun getLeaveSummary(): ResultWrapper<LeaveSummary>
+    suspend fun getAuthUserRotaLastNDays(days: Int, forceRefresh: Boolean = false): ResultWrapper<List<Rota>>
+    suspend fun getCurrentRota(forceRefresh: Boolean = false): ResultWrapper<Rota?>
+    suspend fun getUpcomingRotas(forceRefresh: Boolean = false): ResultWrapper<List<Rota>>
+    suspend fun getLeaveSummary(forceRefresh: Boolean = false): ResultWrapper<LeaveSummary>
 
     suspend fun requestHoliday(
         reason: String,
@@ -53,5 +54,5 @@ interface UserRepository {
     ): ResultWrapper<String>
 
 
-    suspend fun getAllEmployees(): ResultWrapper<List<EmployeeInfo>>
+    suspend fun getAllEmployees(forceRefresh: Boolean = false): ResultWrapper<List<EmployeeInfo>>
 }

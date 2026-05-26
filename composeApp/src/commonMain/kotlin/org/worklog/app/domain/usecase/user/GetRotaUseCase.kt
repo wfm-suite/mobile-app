@@ -7,13 +7,18 @@ class GetRotaUseCase(
     private val userRepository: UserRepository,
     private val rotaRepository: RotaRepository
 ) {
-    suspend fun getCurrentRota() = userRepository.getCurrentRota()
+    suspend fun getCurrentRota(forceRefresh: Boolean = false) =
+        userRepository.getCurrentRota(forceRefresh)
 
-    suspend fun getUpcomingRotas() = userRepository.getUpcomingRotas()
+    suspend fun getUpcomingRotas(forceRefresh: Boolean = false) =
+        userRepository.getUpcomingRotas(forceRefresh)
 
-    suspend fun getMonthlyRota(month: Int, year: Int) = userRepository.getAuthUserMonthlyRotaByMonthYear(month, year)
+    suspend fun getMonthlyRota(month: Int, year: Int, forceRefresh: Boolean = false) =
+        userRepository.getAuthUserMonthlyRotaByMonthYear(month, year, forceRefresh)
 
-    suspend fun getLastNDaysRota(days: Int) = userRepository.getAuthUserRotaLastNDays(days)
-    
-    suspend fun getUpcomingOpenRota() = rotaRepository.getUpcomingOpenRota()
+    suspend fun getLastNDaysRota(days: Int, forceRefresh: Boolean = false) =
+        userRepository.getAuthUserRotaLastNDays(days, forceRefresh)
+
+    suspend fun getUpcomingOpenRota(forceRefresh: Boolean = false) =
+        rotaRepository.getUpcomingOpenRota(forceRefresh)
 }

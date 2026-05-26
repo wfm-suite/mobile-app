@@ -5,14 +5,15 @@ import org.worklog.app.domain.model.EmployeeRota
 import org.worklog.app.domain.model.Rota
 
 interface RotaRepository {
-    suspend fun getRotaByUserId(userId: Int): ResultWrapper<List<Rota>>
-    suspend fun getAllUsersWeeklyRota(): ResultWrapper<List<EmployeeRota>>
-    suspend fun getAllUsersMonthlyRota(): ResultWrapper<List<EmployeeRota>>
+    suspend fun getRotaByUserId(userId: Int, forceRefresh: Boolean = false): ResultWrapper<List<Rota>>
+    suspend fun getAllUsersWeeklyRota(forceRefresh: Boolean = false): ResultWrapper<List<EmployeeRota>>
+    suspend fun getAllUsersMonthlyRota(forceRefresh: Boolean = false): ResultWrapper<List<EmployeeRota>>
     suspend fun getAllUsersMonthlyRotaByMonthYear(
         month: Int,
-        year: Int
+        year: Int,
+        forceRefresh: Boolean = false
     ): ResultWrapper<List<EmployeeRota>>
-    suspend fun getUpcomingRotasExceptAuthUser(): ResultWrapper<List<EmployeeRota>>
+    suspend fun getUpcomingRotasExceptAuthUser(forceRefresh: Boolean = false): ResultWrapper<List<EmployeeRota>>
 
     suspend fun rotaSwapRequest(
         myRotaId: Int,
@@ -23,6 +24,8 @@ interface RotaRepository {
         rotaId: Int,
     ): ResultWrapper<String>
 
-    suspend fun getUpcomingOpenRota(): ResultWrapper<List<Rota>>
+    suspend fun getUpcomingOpenRota(forceRefresh: Boolean = false): ResultWrapper<List<Rota>>
+
+    suspend fun getAuthUserRotaLastNDays(days: Int, forceRefresh: Boolean = false): ResultWrapper<List<Rota>>
 
 }

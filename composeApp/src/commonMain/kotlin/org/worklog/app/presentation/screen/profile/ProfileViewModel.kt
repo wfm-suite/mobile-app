@@ -19,6 +19,10 @@ class ProfileViewModel(
     private val _uiState = MutableStateFlow(ProfileUiState())
     val uiState: StateFlow<ProfileUiState> = _uiState.asStateFlow()
 
+    init {
+        getUserProfile()
+    }
+
     fun refreshData() {
         getUserProfile()
     }

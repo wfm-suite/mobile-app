@@ -30,7 +30,8 @@ fun RotaDto.toDomainModel(designation: String): Rota {
         startTimeEnabled = startTimeEnabled,
         floorName = floorName ?: "",
         shiftLabel = shiftLabel ?: remarks ?: "",
-        shortCode = shortCode ?: remarks ?: ""
+        shortCode = shortCode ?: remarks ?: "",
+        isLeave = isLeave
     )
 }
 

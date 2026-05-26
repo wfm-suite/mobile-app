@@ -27,6 +27,26 @@ class UserRepositoryImpl(
     private val _userProfile = MutableStateFlow<ResultWrapper<UserInfo>>(ResultWrapper.Loading)
     override val userProfile: Flow<ResultWrapper<UserInfo>> = _userProfile
 
+        // In-memory caches. Repositories are Koin singletons, so caches outlive ViewModels
+    // and survive bottom-nav tab switches. Mutations (shift toggle, logout) invalidate.
+    private var currentRotaCache: Rota? = null
+    private var currentRotaCacheLoaded: Boolean = false
+    private val monthlyRotaCache = mutableMapOf<Pair<Int, Int>, List<Rota>>()
+    private val lastNDaysRotaCache = mutableMapOf<Int, List<Rota>>()
+    private var authMonthlyRotaCache: List<Rota>? = null
+    private var upcomingRotaCache: List<Rota>? = null
+    private var leaveSummaryCache: LeaveSummary? = null
+    private var allEmployeesCache: List<EmployeeInfo>? = null
+
+    private fun invalidateRotaCaches() {
+        currentRotaCache = null
+        currentRotaCacheLoaded = false
+        monthlyRotaCache.clear()
+        lastNDaysRotaCache.clear()
+        authMonthlyRotaCache = null
+        upcomingRotaCache = null
+    }
+
     override suspend fun loadUserProfile(): ResultWrapper<UserInfo> {
         return handleApiResponse(
             call = { remoteDataSource.loadUserProfile() },
@@ -123,45 +143,62 @@ class UserRepositoryImpl(
         authTokenProvider.clearToken()
         preferenceDataSource.saveAuthToken("")
         _userProfile.value = ResultWrapper.Loading
+        invalidateRotaCaches()
+        leaveSummaryCache = null
+        allEmployeesCache = null
         return ResultWrapper.Success(Unit)
     }
 
-    override suspend fun getAuthUserMonthlyRota(): ResultWrapper<List<Rota>> {
+    override suspend fun getAuthUserMonthlyRota(forceRefresh: Boolean): ResultWrapper<List<Rota>> {
+        if (!forceRefresh) authMonthlyRotaCache?.let { return ResultWrapper.Success(it) }
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleApiResponse(
             call = { remoteDataSource.getAuthUserMonthlyRota() },
             mapper = { it.rotas.map { it.toDomainModel(user?.designation ?: "Your Designation") } }
-        )
+        ).also { if (it is ResultWrapper.Success) authMonthlyRotaCache = it.data }
     }
 
     override suspend fun getAuthUserMonthlyRotaByMonthYear(
         month: Int,
-        year: Int
+        year: Int,
+        forceRefresh: Boolean
     ): ResultWrapper<List<Rota>> {
+        val key = month to year
+        if (!forceRefresh) monthlyRotaCache[key]?.let { return ResultWrapper.Success(it) }
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleApiResponse(
             call = { remoteDataSource.getAuthUserMonthlyRotaByMonthYear(month, year) },
             mapper = { it.rotas.map { it.toDomainModel(user?.designation ?: "Your Designation") } }
-        )
+        ).also { if (it is ResultWrapper.Success) monthlyRotaCache[key] = it.data }
     }
 
-    override suspend fun getAuthUserRotaLastNDays(days: Int): ResultWrapper<List<Rota>> {
+    override suspend fun getAuthUserRotaLastNDays(days: Int, forceRefresh: Boolean): ResultWrapper<List<Rota>> {
+        if (!forceRefresh) lastNDaysRotaCache[days]?.let { return ResultWrapper.Success(it) }
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleApiResponse(
             call = { remoteDataSource.getAuthUserRotaLastNDays(days) },
             mapper = { it.rotas.map { it.toDomainModel(user?.designation ?: "Your Designation") } }
-        )
+        ).also { if (it is ResultWrapper.Success) lastNDaysRotaCache[days] = it.data }
     }
 
-    override suspend fun getCurrentRota(): ResultWrapper<Rota?> {
+    override suspend fun getCurrentRota(forceRefresh: Boolean): ResultWrapper<Rota?> {
+        if (!forceRefresh && currentRotaCacheLoaded) {
+            return ResultWrapper.Success(currentRotaCache)
+        }
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleNullableApiResponse(
             call = { remoteDataSource.getAuthUserCurrentRota() },
             mapper = { it.currentRota?.toDomainModel(user?.designation ?: "Your Designation") }
-        )
+        ).also {
+            if (it is ResultWrapper.Success) {
+                currentRotaCache = it.data
+                currentRotaCacheLoaded = true
+            }
+        }
     }
 
-    override suspend fun getUpcomingRotas(): ResultWrapper<List<Rota>> {
+    override suspend fun getUpcomingRotas(forceRefresh: Boolean): ResultWrapper<List<Rota>> {
+        if (!forceRefresh) upcomingRotaCache?.let { return ResultWrapper.Success(it) }
         val user = (_userProfile.value as? ResultWrapper.Success)?.data
         return handleApiResponse(
             call = { remoteDataSource.getAuthUserUpcomingRota() },
@@ -172,14 +209,15 @@ class UserRepositoryImpl(
                     )
                 } ?: emptyList()
             }
-        )
+        ).also { if (it is ResultWrapper.Success) upcomingRotaCache = it.data }
     }
 
-    override suspend fun getLeaveSummary(): ResultWrapper<LeaveSummary> {
+    override suspend fun getLeaveSummary(forceRefresh: Boolean): ResultWrapper<LeaveSummary> {
+        if (!forceRefresh) leaveSummaryCache?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = { remoteDataSource.getLeaveDetails() },
             mapper = { it.toDomain() }
-        )
+        ).also { if (it is ResultWrapper.Success) leaveSummaryCache = it.data }
     }
 
     override suspend fun requestHoliday(
@@ -200,7 +238,7 @@ class UserRepositoryImpl(
     ): ResultWrapper<String> {
         return handleSuccessResponse(
             call = { remoteDataSource.startShift(employeeId, latitude, longitude) },
-        )
+        ).also { if (it is ResultWrapper.Success) invalidateRotaCaches() }
     }
 
     override suspend fun endShift(
@@ -210,16 +248,17 @@ class UserRepositoryImpl(
     ): ResultWrapper<String> {
         return handleSuccessResponse(
             call = { remoteDataSource.endShift(employeeId, latitude, longitude) },
-        )
+        ).also { if (it is ResultWrapper.Success) invalidateRotaCaches() }
     }
 
 
-    override suspend fun getAllEmployees(): ResultWrapper<List<EmployeeInfo>> {
+    override suspend fun getAllEmployees(forceRefresh: Boolean): ResultWrapper<List<EmployeeInfo>> {
+        if (!forceRefresh) allEmployeesCache?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = remoteDataSource::getAllEmployees,
             mapper = { response ->
                 response.employees.map { it.toDomain() }
             }
-        )
+        ).also { if (it is ResultWrapper.Success) allEmployeesCache = it.data }
     }
 }

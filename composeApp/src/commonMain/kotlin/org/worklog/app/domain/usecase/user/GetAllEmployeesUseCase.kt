@@ -5,5 +5,6 @@ import org.worklog.app.domain.repository.UserRepository
 class GetAllEmployeesUseCase(
     private val userRepository: UserRepository
 ) {
-    suspend operator fun invoke() = userRepository.getAllEmployees()
+    suspend operator fun invoke(forceRefresh: Boolean = false) =
+        userRepository.getAllEmployees(forceRefresh)
 }

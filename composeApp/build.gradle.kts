@@ -35,6 +35,8 @@ kotlin {
             implementation(libs.play.services.location)
             implementation(libs.androidx.core.splashscreen)
             implementation(libs.coil.network.okhttp)
+            implementation(libs.mapbox.android)
+            implementation(libs.mapbox.compose)
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -98,6 +100,12 @@ android {
         targetSdk = libs.versions.android.targetSdk.get().toInt()
         versionCode = 1
         versionName = "1.0"
+        
+        val mapboxToken = project.findProperty("MAPBOX_PUBLIC_TOKEN")?.toString() ?: ""
+        buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
+    }
+    buildFeatures {
+        buildConfig = true
     }
     packaging {
         resources {

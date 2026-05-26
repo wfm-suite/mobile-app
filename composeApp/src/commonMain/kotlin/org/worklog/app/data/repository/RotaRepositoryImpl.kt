@@ -14,16 +14,36 @@ class RotaRepositoryImpl(
     private val remoteDataSource: RemoteDataSource,
 ) : RotaRepository {
 
-    override suspend fun getRotaByUserId(userId: Int): ResultWrapper<List<Rota>> {
+    private val rotaByUserIdCache = mutableMapOf<Int, List<Rota>>()
+    private var allUsersWeeklyRotaCache: List<EmployeeRota>? = null
+    private var allUsersMonthlyRotaCache: List<EmployeeRota>? = null
+    private val allUsersMonthlyByYearCache = mutableMapOf<Pair<Int, Int>, List<EmployeeRota>>()
+    private var upcomingRotasExceptAuthUserCache: List<EmployeeRota>? = null
+    private var upcomingOpenRotaCache: List<Rota>? = null
+    private val authUserLastNDaysRotaCache = mutableMapOf<Int, List<Rota>>()
+
+    private fun invalidateAll() {
+        rotaByUserIdCache.clear()
+        allUsersWeeklyRotaCache = null
+        allUsersMonthlyRotaCache = null
+        allUsersMonthlyByYearCache.clear()
+        upcomingRotasExceptAuthUserCache = null
+        upcomingOpenRotaCache = null
+        authUserLastNDaysRotaCache.clear()
+    }
+
+    override suspend fun getRotaByUserId(userId: Int, forceRefresh: Boolean): ResultWrapper<List<Rota>> {
+        if (!forceRefresh) rotaByUserIdCache[userId]?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = { remoteDataSource.getRotaByUserId(userId) },
             mapper = { response ->
                 response.rotas.map { it.toDomainModel("User Designation") }
             }
-        )
+        ).also { if (it is ResultWrapper.Success) rotaByUserIdCache[userId] = it.data }
     }
 
-    override suspend fun getAllUsersWeeklyRota(): ResultWrapper<List<EmployeeRota>> {
+    override suspend fun getAllUsersWeeklyRota(forceRefresh: Boolean): ResultWrapper<List<EmployeeRota>> {
+        if (!forceRefresh) allUsersWeeklyRotaCache?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = remoteDataSource::getAllUsersWeeklyRota,
             mapper = { response ->
@@ -33,10 +53,11 @@ class RotaRepositoryImpl(
                     }
                 }
             }
-        )
+        ).also { if (it is ResultWrapper.Success) allUsersWeeklyRotaCache = it.data }
     }
 
-    override suspend fun getAllUsersMonthlyRota(): ResultWrapper<List<EmployeeRota>> {
+    override suspend fun getAllUsersMonthlyRota(forceRefresh: Boolean): ResultWrapper<List<EmployeeRota>> {
+        if (!forceRefresh) allUsersMonthlyRotaCache?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = remoteDataSource::getAllUsersMonthlyRota,
             mapper = { response ->
@@ -46,13 +67,16 @@ class RotaRepositoryImpl(
                     }
                 }
             }
-        )
+        ).also { if (it is ResultWrapper.Success) allUsersMonthlyRotaCache = it.data }
     }
 
     override suspend fun getAllUsersMonthlyRotaByMonthYear(
         month: Int,
-        year: Int
+        year: Int,
+        forceRefresh: Boolean
     ): ResultWrapper<List<EmployeeRota>> {
+        val key = month to year
+        if (!forceRefresh) allUsersMonthlyByYearCache[key]?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = { remoteDataSource.getAllUsersMonthlyRotaByMonthYear(month, year) },
             mapper = { response ->
@@ -62,10 +86,11 @@ class RotaRepositoryImpl(
                     }
                 }
             }
-        )
+        ).also { if (it is ResultWrapper.Success) allUsersMonthlyByYearCache[key] = it.data }
     }
 
-    override suspend fun getUpcomingRotasExceptAuthUser(): ResultWrapper<List<EmployeeRota>> {
+    override suspend fun getUpcomingRotasExceptAuthUser(forceRefresh: Boolean): ResultWrapper<List<EmployeeRota>> {
+        if (!forceRefresh) upcomingRotasExceptAuthUserCache?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = remoteDataSource::getUpcomingRotasExceptAuthUser,
             mapper = { response ->
@@ -75,7 +100,7 @@ class RotaRepositoryImpl(
                     }
                 } ?: emptyList()
             }
-        )
+        ).also { if (it is ResultWrapper.Success) upcomingRotasExceptAuthUserCache = it.data }
     }
 
     override suspend fun rotaSwapRequest(
@@ -89,7 +114,7 @@ class RotaRepositoryImpl(
                     requestedRotaId = requestedRotaId
                 )
             }
-        )
+        ).also { if (it is ResultWrapper.Success) invalidateAll() }
     }
 
     override suspend fun rotaHanoverRequest(
@@ -101,15 +126,26 @@ class RotaRepositoryImpl(
                     rotaId = rotaId
                 )
             },
-        )
+        ).also { if (it is ResultWrapper.Success) invalidateAll() }
     }
 
-    override suspend fun getUpcomingOpenRota(): ResultWrapper<List<Rota>> {
+    override suspend fun getUpcomingOpenRota(forceRefresh: Boolean): ResultWrapper<List<Rota>> {
+        if (!forceRefresh) upcomingOpenRotaCache?.let { return ResultWrapper.Success(it) }
         return handleApiResponse(
             call = remoteDataSource::getUpcomingOpenRota,
             mapper = { response ->
                 response.rotas.map { it.toDomainModel("Open Rota") }
             }
-        )
+        ).also { if (it is ResultWrapper.Success) upcomingOpenRotaCache = it.data }
+    }
+
+    override suspend fun getAuthUserRotaLastNDays(days: Int, forceRefresh: Boolean): ResultWrapper<List<Rota>> {
+        if (!forceRefresh) authUserLastNDaysRotaCache[days]?.let { return ResultWrapper.Success(it) }
+        return handleApiResponse(
+            call = { remoteDataSource.getAuthUserRotaLastNDays(days) },
+            mapper = { response ->
+                response.rotas.map { it.toDomainModel("Your Designation") }
+            }
+        ).also { if (it is ResultWrapper.Success) authUserLastNDaysRotaCache[days] = it.data }
     }
 }

@@ -21,6 +21,7 @@ import androidx.navigation.toRoute
 import org.worklog.app.presentation.screen.leave.request.LeaveRequestScreen
 import org.worklog.app.presentation.screen.login.LoginScreen
 import org.worklog.app.presentation.screen.main.MainScreen
+import org.worklog.app.presentation.screen.map.MapScreen
 import org.worklog.app.presentation.screen.onboarding.OnboardingScreen
 import org.worklog.app.presentation.screen.password_reset.PasswordResetScreen
 import org.worklog.app.presentation.screen.profile.details.ProfileDetailsScreen
@@ -104,6 +105,14 @@ fun AppNavHost(
         appNavComposable<ScreenRoute.RotaSwap> {
             val rota = it.toRoute<ScreenRoute.RotaSwap>().rota
             RotaSwapScreen(rota = rota)
+        }
+        appNavComposable<ScreenRoute.Map> {
+            val route = it.toRoute<ScreenRoute.Map>()
+            MapScreen(
+                latitude = route.latitude,
+                longitude = route.longitude,
+                label = route.label
+            )
         }
     }
 }

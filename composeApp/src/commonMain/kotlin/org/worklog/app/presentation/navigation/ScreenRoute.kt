@@ -52,6 +52,13 @@ sealed class ScreenRoute {
     data object Settings : ScreenRoute()
 
     @Serializable
+    data class Map(
+        val latitude: Double,
+        val longitude: Double,
+        val label: String = "Location"
+    ) : ScreenRoute()
+
+    @Serializable
     data class RotaSwap(
         val rota: String
     ) : ScreenRoute()

@@ -78,7 +78,9 @@ data class RotaDto(
     @SerialName("shift_label")
     val shiftLabel: String? = null,
     @SerialName("short_code")
-    val shortCode: String? = null
+    val shortCode: String? = null,
+    @SerialName("is_leave")
+    val isLeave: Boolean = false
 )
 
 @Serializable

@@ -20,17 +20,19 @@ class MessageViewModel(
     val uiState: StateFlow<MessageUiState> = _uiState.asStateFlow()
 
     init {
-        loadEmployees()
+        loadEmployees(forceRefresh = false)
     }
 
     fun refreshData() {
-        loadEmployees()
+        loadEmployees(forceRefresh = true)
     }
 
-    private fun loadEmployees() {
+    private fun loadEmployees(forceRefresh: Boolean) {
         viewModelScope.launch {
-            _uiState.value = uiState.value.copy(isLoading = true)
-            when (val result = getAllEmployeesUseCase.invoke()) {
+            if (_uiState.value.employees.isEmpty()) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
+            when (val result = getAllEmployeesUseCase.invoke(forceRefresh)) {
                 is ResultWrapper.Success -> {
                     _uiState.update {
                         it.copy(

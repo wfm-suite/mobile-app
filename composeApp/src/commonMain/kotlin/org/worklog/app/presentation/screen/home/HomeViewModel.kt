@@ -38,23 +38,25 @@ class HomeViewModel(
         updateGreetingAndDate()
         observeCurrentShiftStatus()
         observeUserProfile()
-    }
-
-    fun refreshData() {
-        updateGreetingAndDate()
         loadUserRota()
         loadHomeShifts()
     }
 
-    fun loadHomeShifts() {
+    fun refreshData() {
+        updateGreetingAndDate()
+        loadUserRota(forceRefresh = true)
+        loadHomeShifts(forceRefresh = true)
+    }
+
+    fun loadHomeShifts(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            var result = rotaUseCase.getLastNDaysRota(40)
-            if (result !is ResultWrapper.Success || (result as ResultWrapper.Success).data.isEmpty()) {
-                val now = Clock.System.now().toLocalDateTime(TimeZone.currentSystemDefault())
-                result = rotaUseCase.getMonthlyRota(now.month.number, now.year)
+            // Only show shimmer when we have no data to display
+            if (_uiState.value.monthlyRotas.isEmpty()) {
+                _uiState.update { it.copy(isLoading = true) }
             }
+            val result = rotaUseCase.getLastNDaysRota(35, forceRefresh)
             if (result is ResultWrapper.Success) {
+                // Trust backend order: today first, future ASC, past DESC.
                 val rotas = result.data
                 _uiState.update {
                     it.copy(
@@ -127,11 +129,13 @@ class HomeViewModel(
         }
     }
 
-    fun loadUserRota() {
+    fun loadUserRota(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true) }
-            val currentRotaResult = rotaUseCase.getCurrentRota()
-            
+            if (_uiState.value.currentRota == null) {
+                _uiState.update { it.copy(isLoading = true) }
+            }
+            val currentRotaResult = rotaUseCase.getCurrentRota(forceRefresh)
+
             if (currentRotaResult is ResultWrapper.Success) {
                 _uiState.update {
                     it.copy(

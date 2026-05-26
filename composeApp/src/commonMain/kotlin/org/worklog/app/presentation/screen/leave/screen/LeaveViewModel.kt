@@ -18,17 +18,19 @@ class LeaveViewModel(
     val uiState: StateFlow<LeaveUiState> = _uiState.asStateFlow()
 
     init {
-        getLeaveDetails()
+        getLeaveDetails(forceRefresh = false)
     }
 
     fun refreshData() {
-        getLeaveDetails()
+        getLeaveDetails(forceRefresh = true)
     }
 
-    private fun getLeaveDetails() {
-        _uiState.value = _uiState.value.copy(isLoading = true)
+    private fun getLeaveDetails(forceRefresh: Boolean) {
+        if (_uiState.value.leaveSummary == null) {
+            _uiState.update { it.copy(isLoading = true) }
+        }
         viewModelScope.launch {
-            when (val result = getLeaveDetailsUseCase()) {
+            when (val result = getLeaveDetailsUseCase(forceRefresh)) {
                 is ResultWrapper.Success -> {
                     _uiState.update {
                         it.copy(
@@ -39,11 +41,11 @@ class LeaveViewModel(
                 }
 
                 is ResultWrapper.Error -> {
-                    _uiState.update { it.copy(error = result.message) }
+                    _uiState.update { it.copy(isLoading = false, error = result.message) }
                 }
 
                 ResultWrapper.Loading -> {
-                    _uiState.value = _uiState.value.copy(isLoading = true)
+                    _uiState.update { it.copy(isLoading = true) }
                 }
             }
         }

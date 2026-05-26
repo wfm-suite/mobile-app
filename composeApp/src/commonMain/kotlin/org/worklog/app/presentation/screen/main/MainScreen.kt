@@ -7,11 +7,13 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.toRoute
 import org.worklog.app.presentation.component.AppBottomNavigation
 import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.navigation.appNavComposable
 import org.worklog.app.presentation.screen.home.HomeScreen
 import org.worklog.app.presentation.screen.leave.screen.LeaveScreen
+import org.worklog.app.presentation.screen.map.MapScreen
 import org.worklog.app.presentation.screen.message.MessageScreen
 import org.worklog.app.presentation.screen.profile.ProfileScreen
 import org.worklog.app.presentation.screen.rota.RotaScreen
@@ -60,6 +62,14 @@ private fun MainScreenContent() {
                 }
                 appNavComposable<ScreenRoute.Profile> {
                     ProfileScreen()
+                }
+                appNavComposable<ScreenRoute.Map> {
+                    val route = it.toRoute<ScreenRoute.Map>()
+                    MapScreen(
+                        latitude = route.latitude,
+                        longitude = route.longitude,
+                        label = route.label
+                    )
                 }
             }
         }
