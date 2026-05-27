@@ -20,7 +20,8 @@ class MessageViewModel(
     val uiState: StateFlow<MessageUiState> = _uiState.asStateFlow()
 
     init {
-        loadEmployees(forceRefresh = false)
+        // Always force fresh fetch — bypasses stale cache after API fix
+        loadEmployees(forceRefresh = true)
     }
 
     fun refreshData() {
