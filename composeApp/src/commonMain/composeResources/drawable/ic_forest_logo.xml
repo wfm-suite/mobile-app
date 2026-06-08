@@ -1,0 +1,29 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="200dp"
+    android:height="200dp"
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+
+    <!-- Left Tree (Lighter Teal) -->
+    <path
+        android:fillColor="#4A99AF"
+        android:pathData="M35,42 L42,32 L38,32 L44,22 L41,22 L46,14 L51,22 L48,22 L54,32 L50,32 L57,42 Z" />
+
+    <!-- Right Tree (Lighter Teal) -->
+    <path
+        android:fillColor="#4A99AF"
+        android:pathData="M65,42 L58,32 L62,32 L56,22 L59,22 L54,14 L49,22 L52,22 L46,32 L50,32 L43,42 Z" />
+
+    <!-- Center Tree (Darker Teal - Primary) -->
+    <path
+        android:fillColor="#1E5266"
+        android:pathData="M50,10 L56,20 L53,20 L61,32 L57,32 L65,45 L35,45 L43,32 L39,32 L47,20 L44,20 Z" />
+
+    <!-- Curved Hill/Base -->
+    <path
+        android:fillColor="#4A99AF"
+        android:pathData="M25,48 Q50,42 75,48 L75,50 Q50,44 25,50 Z" />
+
+    <!-- "forest" Text (Approximate) -->
+    <!-- Since I can't use fonts in XML paths easily, I'll use a clean path or simply use the logo part -->
+</vector>
