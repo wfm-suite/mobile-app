@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "812957435323",
+    "project_id": "worklog-d12e8",
+    "storage_bucket": "worklog-d12e8.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:812957435323:android:45e47722e17459a6a2f09e",
+        "android_client_info": {
+          "package_name": "org.worklog.app"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyBYikB4FuekL4mcRyn2eedgyGCeomAlGpo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

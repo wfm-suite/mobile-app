@@ -59,7 +59,7 @@ fun CustomTabLayout(
 }
 
 @Composable
-private fun TabButton(
+fun TabButton(
     modifier: Modifier = Modifier,
     label: String = "",
     textStyle: TextStyle = MaterialTheme.typography.titleMedium,

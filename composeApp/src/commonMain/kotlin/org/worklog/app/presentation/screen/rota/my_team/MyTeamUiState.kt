@@ -14,8 +14,9 @@ data class MyTeamUiState(
     val selectedYear: Int? = null,
     val isLoading: Boolean = false,
     val message: String? = null,
-    val shiftTypes: List<String> = listOf("All", "Day", "Night"),
-    val selectedShiftStatus: String? = "All",
+    val shiftTypes: List<String> = listOf("Day", "Night"),
+    val selectedShiftStatus: String? = "Day",
     val floorNames: List<String> = listOf("All"),
-    val selectedFloorName: String? = "All"
+    val selectedFloorName: String? = "All",
+    val cancellingRequestId: Int? = null
 )

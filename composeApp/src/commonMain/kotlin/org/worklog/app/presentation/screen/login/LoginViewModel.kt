@@ -81,15 +81,20 @@ class LoginViewModel(
     }
 
     fun sendOtp() {
-        val phone = _uiState.value.phone.trim()
-        if (phone.isBlank()) {
+        val rawPhone = _uiState.value.phone.trim()
+        if (rawPhone.isBlank()) {
             _uiState.update { it.copy(phoneError = "Phone number is required") }
             return
         }
-        if (phone.length < 7) {
+
+        val phone = normalizePhone(rawPhone)
+        if (phone == null) {
             _uiState.update { it.copy(phoneError = "Enter a valid phone number") }
             return
         }
+
+        // Persist normalized number so resend/verify reuse it
+        _uiState.update { it.copy(phone = phone) }
 
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
@@ -102,6 +107,25 @@ class LoginViewModel(
                 is ResultWrapper.Loading -> Unit
             }
         }
+    }
+
+    // Convert user input to E.164.
+    // Examples: "07424 978944" → "+447424978944", "00447424978944" → "+447424978944",
+    //           "+447424978944" → unchanged, "447424978944" → "+447424978944".
+    // Returns null if the result isn't a plausible international number (8–15 digits).
+    private fun normalizePhone(raw: String): String? {
+        val cleaned = raw.filter { it.isDigit() || it == '+' }
+        val withPlus = when {
+            cleaned.startsWith("+") -> cleaned
+            cleaned.startsWith("00") -> "+" + cleaned.drop(2)
+            // UK national format: leading "0" → assume UK (+44)
+            cleaned.startsWith("0") -> "+44" + cleaned.drop(1)
+            cleaned.isNotEmpty() -> "+$cleaned"
+            else -> return null
+        }
+        val digits = withPlus.drop(1)
+        if (digits.length !in 8..15 || !digits.all { it.isDigit() }) return null
+        return withPlus
     }
 
     fun verifyOtp() {

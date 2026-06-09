@@ -36,17 +36,20 @@ import org.worklog.app.presentation.component.CustomRow
 import org.worklog.app.presentation.component.ShimmerBox
 import org.worklog.app.presentation.component.TopbarWithLogo
 import org.worklog.app.presentation.component.UserInfoItem
+import org.worklog.app.presentation.navigation.ScreenRoute
+import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.dimens
 
 @Composable
 fun MessageScreen(
     viewModel: MessageViewModel = koinViewModel()
 ) {
+    val navController = LocalNavController.current
     val uiState by viewModel.uiState.collectAsState()
 
     MessageScreenContent(
         isLoading = uiState.isLoading,
-        onNotificationClick = {},
+        onNotificationClick = { navController.navigate(ScreenRoute.Notifications) },
         employees = uiState.filteredEmployees,
         searchQuery = uiState.searchQuery,
         onSearchQueryChange = viewModel::onSearchQueryChange,
@@ -78,73 +81,73 @@ fun MessageScreenContent(
             )
         }
     ) { paddingValues ->
-        PullToRefreshBox(
-            isRefreshing = isLoading,
-            onRefresh = onRefresh,
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
+                .padding(horizontal = dimens.horizontalPadding)
         ) {
-        Column(
-            modifier = Modifier.fillMaxSize()
-                .padding(dimens.contentPadding)
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
+            // Fixed search bar — stays visible while list scrolls
             CustomSearchBar(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = dimens.verticalPadding),
                 value = searchQuery,
                 onSearch = onSearchQueryChange,
                 hint = "Search by name, email, or phone"
             )
 
-            Spacer(modifier = Modifier.height(8.dp))
-            if (isLoading) {
-                repeat(8) {
-                    CustomRow(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .clip(shape = RoundedCornerShape(dimens.cornerRadius))
-                            .background(
-                                color = MaterialTheme.colorScheme.secondaryContainer,
-                                shape = RoundedCornerShape(dimens.cornerRadius)
+            PullToRefreshBox(
+                isRefreshing = isLoading,
+                onRefresh = onRefresh,
+                modifier = Modifier.fillMaxSize()
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    if (isLoading) {
+                        repeat(8) {
+                            CustomRow(
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .clip(shape = RoundedCornerShape(dimens.cornerRadius))
+                                    .background(
+                                        color = MaterialTheme.colorScheme.secondaryContainer,
+                                        shape = RoundedCornerShape(dimens.cornerRadius)
+                                    )
+                            ) {
+                                ShimmerBox(
+                                    modifier = Modifier.size(40.dp),
+                                    height = 40.dp,
+                                    width = 40.dp,
+                                    cornerRadius = 20.dp
+                                )
+                                Spacer(modifier = Modifier.width(dimens.innerVerticalPadding))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    ShimmerBox(height = 20.dp, width = 120.dp, cornerRadius = 4.dp)
+                                    Spacer(modifier = Modifier.height(4.dp))
+                                    ShimmerBox(height = 14.dp, width = 80.dp, cornerRadius = 4.dp)
+                                }
+                            }
+                        }
+                    } else {
+                        employees.forEach { employee ->
+                            UserInfoItem(
+                                name = employee.displayName,
+                                designation = employee.designation,
+                                profileImage = employee.profilePicture,
+                                onCallClick = { onCallClick(employee.phone) },
+                                onMessageClick = { onMessageClick(employee.phone) },
                             )
-                    ) {
-                        ShimmerBox(
-                            modifier = Modifier.size(40.dp),
-                            height = 40.dp,
-                            width = 40.dp,
-                            cornerRadius = 20.dp
-                        )
-                        Spacer(modifier = Modifier.width(dimens.innerVerticalPadding))
-                        Column(
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            ShimmerBox(height = 20.dp, width = 120.dp, cornerRadius = 4.dp)
-                            Spacer(modifier = Modifier.height(4.dp))
-                            ShimmerBox(height = 14.dp, width = 80.dp, cornerRadius = 4.dp)
                         }
                     }
-                }
-            } else {
-
-                employees.forEach { employee ->
-                    UserInfoItem(
-                        name = employee.displayName,
-                        designation = employee.designation,
-                        profileImage = employee.profilePicture,
-                        onCallClick = {
-                            onCallClick(employee.phone)
-                        },
-                        onMessageClick = {
-                            onMessageClick(employee.phone)
-                        },
-                    )
+                    Spacer(modifier = Modifier.height(dimens.bottomBarHeight))
                 }
             }
-            Spacer(modifier = Modifier.height(dimens.bottomBarHeight))
         }
-        } // end PullToRefreshBox
     }
 }
 

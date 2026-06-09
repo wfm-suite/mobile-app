@@ -5,8 +5,10 @@ import androidx.lifecycle.viewModelScope
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import org.worklog.app.core.notification.RefreshEvents
 import org.worklog.app.core.util.ResultWrapper
 import org.worklog.app.domain.model.EmployeeRota
 import org.worklog.app.domain.model.Rota
@@ -17,7 +19,8 @@ import org.worklog.app.domain.usecase.user.UserProfileUseCase
 class RotaSwapViewModel(
     private val employeeRotaUseCase: EmployeeRotaUseCase,
     private val swapHandoverUseCase: RotaSwapHandoverUseCase,
-    private val userProfileUseCase: UserProfileUseCase
+    private val userProfileUseCase: UserProfileUseCase,
+    private val refreshEvents: RefreshEvents
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RotaSwapUiState())
@@ -26,6 +29,16 @@ class RotaSwapViewModel(
     init {
         observeUserProfile()
         loadEmployeeRotas()
+        observeRefreshEvents()
+    }
+
+    // FCM push (handover_accepted, swap_accepted etc.) → refresh the "upcoming rotas" list.
+    private fun observeRefreshEvents() {
+        viewModelScope.launch {
+            refreshEvents.events
+                .filter { it == RefreshEvents.Topics.ROTAS || it == RefreshEvents.Topics.SWAPS }
+                .collect { loadEmployeeRotas(forceRefresh = true) }
+        }
     }
 
     private fun observeUserProfile() {
@@ -41,9 +54,9 @@ class RotaSwapViewModel(
         }
     }
 
-    private fun loadEmployeeRotas() {
+    private fun loadEmployeeRotas(forceRefresh: Boolean = false) {
         viewModelScope.launch {
-            when (val result = employeeRotaUseCase.getUpcomingRotasExceptAuthUser()) {
+            when (val result = employeeRotaUseCase.getUpcomingRotasExceptAuthUser(forceRefresh)) {
                 is ResultWrapper.Success -> {
                     _uiState.update {
                         it.copy(
@@ -96,6 +109,8 @@ class RotaSwapViewModel(
             _uiState.update { state ->
                 when (result) {
                     is ResultWrapper.Success -> {
+                        refreshEvents.emit(RefreshEvents.Topics.ROTAS)
+                        refreshEvents.emit(RefreshEvents.Topics.SWAPS)
                         state.copy(
                             isSwapRequesting = false,
                             isRequestSent = true,
@@ -131,6 +146,8 @@ class RotaSwapViewModel(
             _uiState.update { state ->
                 when (result) {
                     is ResultWrapper.Success -> {
+                        refreshEvents.emit(RefreshEvents.Topics.ROTAS)
+                        refreshEvents.emit(RefreshEvents.Topics.HANDOVERS)
                         state.copy(
                             isSwapRequesting = false,
                             isRequestSent = true,
@@ -146,6 +163,47 @@ class RotaSwapViewModel(
                     }
 
                     else -> state
+                }
+            }
+        }
+    }
+
+    fun onCancelRequest() {
+        val userRota = uiState.value.userRota ?: return
+        if (userRota.requestId <= 0) return
+
+        viewModelScope.launch {
+            _uiState.update { it.copy(isCancelling = true, message = null) }
+
+            val result = when (userRota.requestType) {
+                "swap" -> swapHandoverUseCase.cancelSwap(userRota.requestId)
+                "handover" -> swapHandoverUseCase.cancelHandover(userRota.requestId)
+                else -> null
+            }
+
+            _uiState.update { state ->
+                when (result) {
+                    is ResultWrapper.Success -> {
+                        refreshEvents.emit(RefreshEvents.Topics.ROTAS)
+                        refreshEvents.emit(
+                            if (userRota.requestType == "handover")
+                                RefreshEvents.Topics.HANDOVERS
+                            else RefreshEvents.Topics.SWAPS
+                        )
+                        val label = if (userRota.requestType == "handover") "Handover" else "Swap"
+                        state.copy(
+                            isCancelling = false,
+                            isRequestSent = true,
+                            message = "$label request cancelled"
+                        )
+                    }
+
+                    is ResultWrapper.Error -> state.copy(
+                        isCancelling = false,
+                        message = result.message
+                    )
+
+                    else -> state.copy(isCancelling = false)
                 }
             }
         }

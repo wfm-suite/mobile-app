@@ -1,6 +1,8 @@
 package org.worklog.app.presentation.component
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.Notifications
 import androidx.compose.material3.Icon
@@ -10,6 +12,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -23,6 +26,7 @@ fun MainHeaderContent(
     userName: String = "",
     branchName: String = "",
     date: String = "",
+    notificationBadge: Int = 0,
     onNotificationClick: () -> Unit = {},
     onMapClick: (String, String) -> Unit = { _, _ -> }
 ) {
@@ -75,17 +79,38 @@ fun MainHeaderContent(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(8.dp)
         ) {
-            IconButton(
-                onClick = onNotificationClick,
-                modifier = Modifier.size(24.dp)
-            ) {
-                // Figma: notification-02-stroke-rounded, 24x24, white
-                Icon(
-                    imageVector = Icons.Outlined.Notifications,
-                    contentDescription = "Notifications",
-                    tint = Color.White,
+            Box {
+                IconButton(
+                    onClick = onNotificationClick,
                     modifier = Modifier.size(24.dp)
-                )
+                ) {
+                    // Figma: notification-02-stroke-rounded, 24x24, white
+                    Icon(
+                        imageVector = Icons.Outlined.Notifications,
+                        contentDescription = "Notifications",
+                        tint = Color.White,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                if (notificationBadge > 0) {
+                    Box(
+                        modifier = Modifier
+                            .align(Alignment.TopEnd)
+                            .offset(x = 2.dp, y = (-2).dp)
+                            .size(14.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFE53935)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = if (notificationBadge > 9) "9+" else notificationBadge.toString(),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = Color.White,
+                            fontSize = 7.sp,
+                            fontWeight = FontWeight.Bold
+                        )
+                    }
+                }
             }
         }
     }

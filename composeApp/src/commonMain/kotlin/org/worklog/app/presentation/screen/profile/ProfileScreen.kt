@@ -26,9 +26,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil3.compose.AsyncImage
 import org.jetbrains.compose.resources.DrawableResource
-import org.jetbrains.compose.resources.StringResource
 import org.jetbrains.compose.resources.painterResource
 import org.jetbrains.compose.resources.stringResource
 import org.koin.compose.viewmodel.koinViewModel
@@ -41,15 +41,9 @@ import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.dimens
 import worklog.composeapp.generated.resources.Res
-import worklog.composeapp.generated.resources.bank_details
-import worklog.composeapp.generated.resources.employee_declaration
 import worklog.composeapp.generated.resources.ic_next
 import worklog.composeapp.generated.resources.ic_user
 import worklog.composeapp.generated.resources.logout
-import worklog.composeapp.generated.resources.manage_account
-import worklog.composeapp.generated.resources.profile_details
-import worklog.composeapp.generated.resources.submit_resignation
-import worklog.composeapp.generated.resources.training_courses
 
 @Composable
 fun ProfileScreen(
@@ -66,26 +60,13 @@ fun ProfileScreen(
         }
     }
 
-    val optionMenus = listOf(
-        OptionMenu.ProfileDetails,
-        OptionMenu.ManageAccount,
-        OptionMenu.BankDetails,
-        OptionMenu.EmployeeDeclaration,
-        OptionMenu.TrainingCourses,
-        OptionMenu.SubmitResignation
-    )
     ProfileScreenContent(
         isLoading = uiState.isLoading,
-        optionMenus = optionMenus,
+        groups = profileMenuGroups,
         userInfo = uiState.userInfo,
-        onMenuClick = {
-            when (it) {
-                OptionMenu.ProfileDetails -> {
-                    navController.navigate(ScreenRoute.ProfileDetail)
-                }
-
-                else -> {}
-            }
+        onNotificationClick = { navController.navigate(ScreenRoute.Notifications) },
+        onMenuClick = { menu ->
+            navController.navigate(ScreenRoute.ProfileSection(menu.type))
         },
         onLogoutClick = viewModel::logout
     )
@@ -94,8 +75,9 @@ fun ProfileScreen(
 @Composable
 private fun ProfileScreenContent(
     isLoading: Boolean = false,
-    optionMenus: List<OptionMenu>,
+    groups: List<OptionGroup>,
     userInfo: UserInfo?,
+    onNotificationClick: () -> Unit = {},
     onMenuClick: (OptionMenu) -> Unit = {},
     onLogoutClick: () -> Unit = {}
 ) {
@@ -105,7 +87,7 @@ private fun ProfileScreenContent(
             .systemBarsPadding(),
         topBar = {
             TopbarWithLogo(
-                onNotificationClick = {}
+                onNotificationClick = onNotificationClick
             )
         }
     ) {
@@ -180,11 +162,22 @@ private fun ProfileScreenContent(
 
             Spacer(modifier = Modifier.height(dimens.innerVerticalPadding))
 
-            optionMenus.forEach { menu ->
-                MenuItem(
-                    title = stringResource(menu.titleRes),
-                    onClick = { onMenuClick(menu) }
+            groups.forEachIndexed { idx, group ->
+                if (idx > 0) Spacer(modifier = Modifier.height(dimens.innerVerticalPadding))
+                Text(
+                    text = group.title.uppercase(),
+                    style = MaterialTheme.typography.labelMedium.copy(
+                        color = MaterialTheme.colorScheme.outline,
+                        letterSpacing = 0.8.sp
+                    ),
+                    modifier = Modifier.padding(start = 4.dp, top = 4.dp, bottom = 6.dp)
                 )
+                group.items.forEach { menu ->
+                    MenuItem(
+                        title = menu.title,
+                        onClick = { onMenuClick(menu) }
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(dimens.spaceBetween))
@@ -225,30 +218,67 @@ private fun MenuItem(
     }
 }
 
-sealed class OptionMenu(
-    val titleRes: StringResource
-) {
-    object ProfileDetails : OptionMenu(
-        titleRes = Res.string.profile_details
-    )
+data class OptionMenu(val title: String, val type: String)
 
-    object ManageAccount : OptionMenu(
-        titleRes = Res.string.manage_account
-    )
+data class OptionGroup(val title: String, val items: List<OptionMenu>)
 
-    object BankDetails : OptionMenu(
-        titleRes = Res.string.bank_details
-    )
-
-    object EmployeeDeclaration : OptionMenu(
-        titleRes = Res.string.employee_declaration
-    )
-
-    object TrainingCourses : OptionMenu(
-        titleRes = Res.string.training_courses
-    )
-
-    object SubmitResignation : OptionMenu(
-        titleRes = Res.string.submit_resignation
-    )
+// Section type IDs — kept stable, used by ScreenRoute.ProfileSection(type) and
+// switched on inside ProfileSectionScreen to pick the section composable.
+object ProfileSectionType {
+    const val PERSONAL_DETAILS = "personal_details"
+    const val CONTACT_DETAILS = "contact_details"
+    const val ADDRESSES = "addresses"
+    const val EMERGENCY_CONTACTS = "emergency_contacts"
+    const val ASSIGNMENT_SUMMARY = "assignment_summary"
+    const val JOB_STATUS = "job_status"
+    const val RTW_DETAILS = "rtw_details"
+    const val EDI = "edi"
+    const val EMPLOYEE_DECLARATION = "employee_declaration"
+    const val VETTING_DETAILS = "vetting_details"
+    const val TRAINING_COURSES = "training_courses"
+    const val BANK_DETAILS = "bank_details"
+    const val PASSWORD = "password"
+    const val RESIGNATION = "resignation"
 }
+
+val profileMenuGroups = listOf(
+    OptionGroup(
+        title = "Personal Info",
+        items = listOf(
+            OptionMenu("Personal Details", ProfileSectionType.PERSONAL_DETAILS),
+            OptionMenu("Contact Details", ProfileSectionType.CONTACT_DETAILS),
+            OptionMenu("Addresses", ProfileSectionType.ADDRESSES),
+            OptionMenu("Emergency Contacts", ProfileSectionType.EMERGENCY_CONTACTS),
+        )
+    ),
+    OptionGroup(
+        title = "Employment",
+        items = listOf(
+            OptionMenu("Assignment Summary", ProfileSectionType.ASSIGNMENT_SUMMARY),
+            OptionMenu("Job Status", ProfileSectionType.JOB_STATUS),
+            OptionMenu("RTW Details", ProfileSectionType.RTW_DETAILS),
+            OptionMenu("Vetting Details", ProfileSectionType.VETTING_DETAILS),
+        )
+    ),
+    OptionGroup(
+        title = "Compliance & Training",
+        items = listOf(
+            OptionMenu("Employee Declaration", ProfileSectionType.EMPLOYEE_DECLARATION),
+            OptionMenu("Equality / Diversity / Inclusion", ProfileSectionType.EDI),
+            OptionMenu("Training Courses", ProfileSectionType.TRAINING_COURSES),
+        )
+    ),
+    OptionGroup(
+        title = "Money",
+        items = listOf(
+            OptionMenu("Bank Details", ProfileSectionType.BANK_DETAILS),
+        )
+    ),
+    OptionGroup(
+        title = "Account",
+        items = listOf(
+            OptionMenu("My Password", ProfileSectionType.PASSWORD),
+            OptionMenu("Submit Resignation", ProfileSectionType.RESIGNATION),
+        )
+    ),
+)

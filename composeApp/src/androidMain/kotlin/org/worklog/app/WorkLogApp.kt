@@ -12,6 +12,8 @@ class WorkLogApp : Application() {
         super.onCreate()
 
         MapboxOptions.accessToken = BuildConfig.MAPBOX_ACCESS_TOKEN
+            .takeIf { it.isNotBlank() }
+            ?: getString(R.string.mapbox_access_token)
 
         startKoin {
             androidContext(this@WorkLogApp)

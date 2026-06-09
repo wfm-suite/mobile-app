@@ -49,6 +49,9 @@ sealed class ScreenRoute {
     data object ProfileDetail : ScreenRoute()
 
     @Serializable
+    data class ProfileSection(val type: String) : ScreenRoute()
+
+    @Serializable
     data object Settings : ScreenRoute()
 
     @Serializable
@@ -62,5 +65,8 @@ sealed class ScreenRoute {
     data class RotaSwap(
         val rota: String
     ) : ScreenRoute()
+
+    @Serializable
+    data object Notifications : ScreenRoute()
 
 }

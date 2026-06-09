@@ -63,8 +63,14 @@ data class RotaDto(
     val totalHours: String?,
     val location: String?,
     val remarks: String?,
-    @SerialName("swap_status")
-    val swapStatus: String? = null,
+    @SerialName("request_status")
+    val requestStatus: String? = null,
+    @SerialName("request_type")
+    val requestType: String? = null,
+    @SerialName("request_id")
+    val requestId: Int? = null,
+    @SerialName("request_recipient")
+    val requestRecipient: RequestRecipientDto? = null,
     @SerialName("shift_type")
     val shiftType: String? = null,
     @SerialName("shift_status")
@@ -81,6 +87,14 @@ data class RotaDto(
     val shortCode: String? = null,
     @SerialName("is_leave")
     val isLeave: Boolean = false
+)
+
+@Serializable
+data class RequestRecipientDto(
+    val id: Int? = null,
+    val name: String? = null,
+    @SerialName("image_url")
+    val imageUrl: String? = null
 )
 
 @Serializable
@@ -110,4 +124,45 @@ data class RotaHanoverRequest(
 data class OpenRotaResponse(
     @Serializable
     val rotas: List<RotaDto>
+)
+
+@Serializable
+data class IncomingSwapsResponse(
+    val swaps: List<IncomingSwapDto> = emptyList()
+)
+
+@Serializable
+data class IncomingSwapDto(
+    val id: Int,
+    @SerialName("requested_at")
+    val requestedAt: String? = null,
+    val requester: SwapRequesterDto? = null,
+    @SerialName("my_rota")
+    val myRota: SwapRotaSummaryDto? = null,
+    @SerialName("offered_rota")
+    val offeredRota: SwapRotaSummaryDto? = null
+)
+
+@Serializable
+data class SwapRequesterDto(
+    val id: Int? = null,
+    val name: String? = null
+)
+
+@Serializable
+data class SwapRotaSummaryDto(
+    val id: Int? = null,
+    val date: String? = null,
+    @SerialName("shift_start")
+    val shiftStart: String? = null,
+    @SerialName("shift_end")
+    val shiftEnd: String? = null,
+    @SerialName("shift_type")
+    val shiftType: String? = null,
+    val branch: String? = null
+)
+
+@Serializable
+data class SwapRespondRequest(
+    val action: String
 )

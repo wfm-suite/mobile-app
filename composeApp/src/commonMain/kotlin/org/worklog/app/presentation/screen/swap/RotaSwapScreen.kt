@@ -28,6 +28,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -38,6 +40,7 @@ import org.jetbrains.compose.resources.painterResource
 import org.koin.compose.viewmodel.koinViewModel
 import org.worklog.app.domain.model.EmployeeRota
 import org.worklog.app.domain.model.Rota
+import org.worklog.app.domain.model.RotaStatus
 import org.worklog.app.presentation.component.AppTopbarWithBack
 import org.worklog.app.presentation.component.CalendarHeader
 import org.worklog.app.presentation.component.CalendarLayout
@@ -89,7 +92,8 @@ fun RotaSwapScreen(
         onCalendarToggle = viewModel::onCalendarToggle,
         onRotaSelected = viewModel::onRotaSelected,
         onRequestSwap = viewModel::onRequestSwap,
-        onRequestHandover = viewModel::onRequestHandover
+        onRequestHandover = viewModel::onRequestHandover,
+        onCancelRequest = viewModel::onCancelRequest
     )
 }
 
@@ -101,8 +105,14 @@ private fun RotaSwapScreenContent(
     onCalendarToggle: () -> Unit = {},
     onRotaSelected: (EmployeeRota) -> Unit = {},
     onRequestSwap: () -> Unit = {},
-    onRequestHandover: () -> Unit = {}
+    onRequestHandover: () -> Unit = {},
+    onCancelRequest: () -> Unit = {}
 ) {
+    val userRota = uiState.userRota
+    val pendingRequestType = userRota?.takeIf {
+        it.status == RotaStatus.PENDING && it.requestType.isNotBlank() && it.requestId > 0
+    }?.requestType
+
     Scaffold(
         modifier = Modifier.fillMaxSize(),
         topBar = {
@@ -119,94 +129,267 @@ private fun RotaSwapScreenContent(
                 .padding(it)
                 .padding(dimens.contentPadding)
         ) {
-            Row {
-                Column(
-                    modifier = Modifier
-                        .widthIn(min = 50.dp)
-                        .background(
-                            color = MaterialTheme.colorScheme.background,
-                            shape = RoundedCornerShape(dimens.cornerRadius)
-                        ).border(
-                            width = 1.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = RoundedCornerShape(dimens.cornerRadius)
-                        ).padding(
-                            vertical = 4.dp,
-                            horizontal = 6.dp
-                        ),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
-                    Text(
-                        text = uiState.userRota?.date ?: "",
-                        textAlign = TextAlign.Center,
-                        style = MaterialTheme.typography.bodyLarge.copy(
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                    Text(
-                        text = uiState.userRota?.dayName ?: "",
-                        style = MaterialTheme.typography.bodyMedium.copy(
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                TeamShiftCard(
-                    modifier = Modifier.weight(1f),
-                    shift = "${uiState.userRota?.shiftStartTime ?: ""} - ${uiState.userRota?.shiftEndTime ?: ""}",
-                    name = uiState.userInfo?.displayName + " (You)",
-                    profileImage = uiState.userInfo?.profilePicture ?: ""
-                )
-            }
-
-            Spacer(modifier = Modifier.height(dimens.verticalPadding))
-
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                ShiftActionItem(
-                    text = "Swap",
-                    iconRes = Res.drawable.ic_swap,
-                    isSelected = uiState.rotaAction == RotaSwapAction.SWAP,
-                    onClick = { onRotaActionClick(RotaSwapAction.SWAP) }
-                )
-
-                ShiftActionItem(
-                    text = "Handover",
-                    iconRes = Res.drawable.ic_handover,
-                    isSelected = uiState.rotaAction == RotaSwapAction.HANDOVER,
-                    onClick = { onRotaActionClick(RotaSwapAction.HANDOVER) }
-                )
-            }
-
-            Spacer(modifier = Modifier.height(dimens.verticalPadding))
-
             when {
-                uiState.rotaAction == RotaSwapAction.SWAP -> {
-                    RotaSwapLayout(
-                        isDataLoading = uiState.isLoading,
-                        isCalendarExpanded = uiState.isCalendarExpanded,
-                        rotas = uiState.displayRotas,
-                        selectedRota = uiState.selectedRota,
-                        onCalendarToggle = onCalendarToggle,
-                        onRotaSelected = onRotaSelected,
-                        onRequestSwap = onRequestSwap,
-                        isSwapRequesting = uiState.isSwapRequesting
+                userRota != null && pendingRequestType == "swap" -> {
+                    SwapCancelLayout(
+                        userRota = userRota,
+                        userDisplayName = uiState.userInfo?.displayName ?: "",
+                        userAvatarUrl = uiState.userInfo?.profilePicture ?: "",
+                        isCancelling = uiState.isCancelling,
+                        onCancelClick = onCancelRequest
                     )
                 }
 
-                uiState.rotaAction == RotaSwapAction.HANDOVER -> {
-                    PrimaryButton(
-                        modifier = Modifier.fillMaxWidth(),
-                        label = "Request handover",
-                        isLoading = uiState.isSwapRequesting,
-                        onClick = onRequestHandover
+                userRota != null && pendingRequestType == "handover" -> {
+                    HandoverCancelLayout(
+                        userRota = userRota,
+                        isCancelling = uiState.isCancelling,
+                        onCancelClick = onCancelRequest
                     )
+                }
+
+                else -> {
+                    Row {
+                        DateBlock(
+                            date = userRota?.date ?: "",
+                            dayName = userRota?.dayName ?: ""
+                        )
+                        Spacer(modifier = Modifier.width(12.dp))
+                        TeamShiftCard(
+                            modifier = Modifier.weight(1f),
+                            shift = "${userRota?.shiftStartTime ?: ""} - ${userRota?.shiftEndTime ?: ""}",
+                            name = (uiState.userInfo?.displayName ?: "") + " (You)",
+                            profileImage = uiState.userInfo?.profilePicture ?: ""
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(dimens.verticalPadding))
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.Center,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        ShiftActionItem(
+                            text = "Swap",
+                            iconRes = Res.drawable.ic_swap,
+                            isSelected = uiState.rotaAction == RotaSwapAction.SWAP,
+                            onClick = { onRotaActionClick(RotaSwapAction.SWAP) }
+                        )
+
+                        ShiftActionItem(
+                            text = "Handover",
+                            iconRes = Res.drawable.ic_handover,
+                            isSelected = uiState.rotaAction == RotaSwapAction.HANDOVER,
+                            onClick = { onRotaActionClick(RotaSwapAction.HANDOVER) }
+                        )
+                    }
+
+                    Spacer(modifier = Modifier.height(dimens.verticalPadding))
+
+                    when {
+                        uiState.rotaAction == RotaSwapAction.SWAP -> {
+                            RotaSwapLayout(
+                                isDataLoading = uiState.isLoading,
+                                isCalendarExpanded = uiState.isCalendarExpanded,
+                                rotas = uiState.displayRotas,
+                                selectedRota = uiState.selectedRota,
+                                onCalendarToggle = onCalendarToggle,
+                                onRotaSelected = onRotaSelected,
+                                onRequestSwap = onRequestSwap,
+                                isSwapRequesting = uiState.isSwapRequesting
+                            )
+                        }
+
+                        uiState.rotaAction == RotaSwapAction.HANDOVER -> {
+                            PrimaryButton(
+                                modifier = Modifier.fillMaxWidth(),
+                                label = "Request handover",
+                                isLoading = uiState.isSwapRequesting,
+                                onClick = onRequestHandover
+                            )
+                        }
+                    }
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DateBlock(
+    date: String,
+    dayName: String,
+    isHighlighted: Boolean = false
+) {
+    Column(
+        modifier = Modifier
+            .widthIn(min = 50.dp)
+            .background(
+                color = if (isHighlighted) MaterialTheme.colorScheme.inverseSurface
+                else MaterialTheme.colorScheme.background,
+                shape = RoundedCornerShape(dimens.cornerRadius)
+            ).border(
+                width = 1.dp,
+                color = MaterialTheme.colorScheme.primary,
+                shape = RoundedCornerShape(dimens.cornerRadius)
+            ).padding(
+                vertical = 4.dp,
+                horizontal = 6.dp
+            ),
+        horizontalAlignment = Alignment.CenterHorizontally,
+    ) {
+        Text(
+            text = date,
+            textAlign = TextAlign.Center,
+            style = MaterialTheme.typography.bodyLarge.copy(
+                color = if (isHighlighted) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.primary
+            )
+        )
+        Text(
+            text = dayName,
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = if (isHighlighted) MaterialTheme.colorScheme.onPrimary
+                else MaterialTheme.colorScheme.primary
+            )
+        )
+    }
+}
+
+// Design 1: existing swap request — show recipient (top) + swap icon + user (bottom) + red cancel button.
+// recipient rota date/time aren't returned by the API yet, so the recipient card omits the date block.
+@Composable
+private fun SwapCancelLayout(
+    userRota: Rota,
+    userDisplayName: String,
+    userAvatarUrl: String,
+    isCancelling: Boolean,
+    onCancelClick: () -> Unit
+) {
+    TeamShiftCard(
+        modifier = Modifier.fillMaxWidth(),
+        shift = "${userRota.shiftStartTime} - ${userRota.shiftEndTime}",
+        name = userRota.recipientName,
+        profileImage = userRota.recipientAvatarUrl
+    )
+
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(vertical = dimens.verticalPadding),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                .background(MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                modifier = Modifier.size(dimens.iconSize),
+                painter = painterResource(Res.drawable.ic_swap),
+                contentDescription = "Swap",
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+    }
+
+    Row {
+        DateBlock(date = userRota.date, dayName = userRota.dayName)
+        Spacer(modifier = Modifier.width(12.dp))
+        TeamShiftCard(
+            modifier = Modifier.weight(1f),
+            shift = "${userRota.shiftStartTime} - ${userRota.shiftEndTime}",
+            name = "$userDisplayName (You)",
+            profileImage = userAvatarUrl
+        )
+    }
+
+    Spacer(modifier = Modifier.height(dimens.verticalPadding))
+
+    PrimaryButton(
+        modifier = Modifier.fillMaxWidth(),
+        label = "Cancel Request",
+        isLoading = isCancelling,
+        containerColor = MaterialTheme.colorScheme.error,
+        onClick = onCancelClick
+    )
+}
+
+// Design 3: pending handover — date pill highlighted, single user shift card, handover icon,
+// pink banner with "Handover Request" title + pending-with-{recipient} body + red cancel button.
+@Composable
+private fun HandoverCancelLayout(
+    userRota: Rota,
+    isCancelling: Boolean,
+    onCancelClick: () -> Unit
+) {
+    Row {
+        DateBlock(
+            date = userRota.date,
+            dayName = userRota.dayName,
+            isHighlighted = true
+        )
+        Spacer(modifier = Modifier.width(12.dp))
+        TeamShiftCard(
+            modifier = Modifier.weight(1f),
+            shift = "${userRota.shiftStartTime} - ${userRota.shiftEndTime}",
+            name = userRota.recipientName.ifBlank { "(You)" },
+            profileImage = userRota.recipientAvatarUrl
+        )
+    }
+
+    Box(
+        modifier = Modifier.fillMaxWidth().padding(vertical = dimens.verticalPadding),
+        contentAlignment = Alignment.Center
+    ) {
+        Box(
+            modifier = Modifier
+                .size(48.dp)
+                .clip(RoundedCornerShape(dimens.cornerRadiusMedium))
+                .background(MaterialTheme.colorScheme.primary),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                modifier = Modifier.size(dimens.iconSize),
+                painter = painterResource(Res.drawable.ic_handover),
+                contentDescription = "Handover",
+                tint = MaterialTheme.colorScheme.onPrimary
+            )
+        }
+    }
+
+    val recipientLabel = userRota.recipientName.ifBlank { "the recipient" }
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(RoundedCornerShape(dimens.cornerRadius))
+            .background(Color(0xFFFCE4E2))
+            .padding(horizontal = 16.dp, vertical = 16.dp)
+    ) {
+        Text(
+            text = "Handover Request",
+            style = MaterialTheme.typography.titleMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface,
+                fontWeight = FontWeight.SemiBold
+            )
+        )
+        Spacer(modifier = Modifier.height(6.dp))
+        Text(
+            text = "Your handover request to $recipientLabel is pending. The shift is still yours until the request is approved.",
+            style = MaterialTheme.typography.bodyMedium.copy(
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        )
+        Spacer(modifier = Modifier.height(12.dp))
+        PrimaryButton(
+            modifier = Modifier.fillMaxWidth(),
+            label = "Cancel Request",
+            isLoading = isCancelling,
+            containerColor = MaterialTheme.colorScheme.error,
+            onClick = onCancelClick
+        )
     }
 }
 

@@ -1,4 +1,17 @@
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+
+// Load local.properties so MAPBOX_PUBLIC_TOKEN (and other secrets that mustn't
+// be committed) are picked up by project.findProperty(). Gradle doesn't load
+// local.properties into project properties by default.
+val localProps = Properties().apply {
+    val f = rootProject.file("local.properties")
+    if (f.exists()) f.inputStream().use { load(it) }
+}
+fun localOrProp(key: String): String =
+    localProps.getProperty(key)
+        ?: project.findProperty(key)?.toString()
+        ?: ""
 
 plugins {
     alias(libs.plugins.kotlinMultiplatform)
@@ -6,6 +19,11 @@ plugins {
     alias(libs.plugins.composeMultiplatform)
     alias(libs.plugins.composeCompiler)
     alias(libs.plugins.kotlin.serialization)
+    id("com.google.gms.google-services") apply false
+}
+
+if (file("google-services.json").exists() || file("src/google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
 }
 
 kotlin {
@@ -37,6 +55,7 @@ kotlin {
             implementation(libs.coil.network.okhttp)
             implementation(libs.mapbox.android)
             implementation(libs.mapbox.compose)
+            implementation("com.google.firebase:firebase-messaging:24.0.0")
         }
         commonMain.dependencies {
             implementation(compose.runtime)
@@ -62,6 +81,7 @@ kotlin {
             implementation(libs.ktor.client.json)
             implementation(libs.ktor.client.cio)
             implementation(libs.ktor.client.logging)
+            implementation(libs.ktor.client.auth)
 
             // DataStore
             implementation(libs.datastore.core)
@@ -101,7 +121,7 @@ android {
         versionCode = 1
         versionName = "1.0"
         
-        val mapboxToken = project.findProperty("MAPBOX_PUBLIC_TOKEN")?.toString() ?: ""
+        val mapboxToken = localOrProp("MAPBOX_PUBLIC_TOKEN")
         buildConfigField("String", "MAPBOX_ACCESS_TOKEN", "\"$mapboxToken\"")
     }
     buildFeatures {

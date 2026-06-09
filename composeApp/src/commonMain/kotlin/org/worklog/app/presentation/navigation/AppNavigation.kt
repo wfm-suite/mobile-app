@@ -25,6 +25,8 @@ import org.worklog.app.presentation.screen.map.MapScreen
 import org.worklog.app.presentation.screen.onboarding.OnboardingScreen
 import org.worklog.app.presentation.screen.password_reset.PasswordResetScreen
 import org.worklog.app.presentation.screen.profile.details.ProfileDetailsScreen
+import org.worklog.app.presentation.screen.profile.details.ProfileSectionScreen
+import org.worklog.app.presentation.screen.rota.RotaScreen
 import org.worklog.app.presentation.screen.shift.ShiftScreen
 import org.worklog.app.presentation.screen.swap.RotaSwapScreen
 import org.worklog.app.presentation.theme.LocalNavController
@@ -36,7 +38,8 @@ import org.worklog.app.presentation.theme.LocalRootNavController
 fun AppNavigation(
     navController: NavHostController,
     snackBarHostState: SnackbarHostState,
-    initialScreen: ScreenRoute
+    initialScreen: ScreenRoute,
+    notificationCount: Int = 0
 ) {
     Scaffold(
         contentWindowInsets = WindowInsets(0),
@@ -63,7 +66,8 @@ fun AppNavigation(
             Box(modifier = Modifier.padding(innerPadding)) {
                 AppNavHost(
                     navController = navController,
-                    initialScreen = initialScreen
+                    initialScreen = initialScreen,
+                    notificationCount = notificationCount
                 )
             }
         }
@@ -73,7 +77,8 @@ fun AppNavigation(
 @Composable
 fun AppNavHost(
     navController: NavHostController,
-    initialScreen: ScreenRoute
+    initialScreen: ScreenRoute,
+    notificationCount: Int = 0
 ) {
     NavHost(
         navController = navController,
@@ -89,7 +94,10 @@ fun AppNavHost(
             PasswordResetScreen()
         }
         appNavComposable<ScreenRoute.Main> {
-            MainScreen()
+            MainScreen(notificationCount = notificationCount)
+        }
+        appNavComposable<ScreenRoute.Rota> {
+            RotaScreen()
         }
         appNavComposable<ScreenRoute.LeaveRequest> {
             val accruedHoliday = it.toRoute<ScreenRoute.LeaveRequest>().accruedHoliday
@@ -101,6 +109,10 @@ fun AppNavHost(
         }
         appNavComposable<ScreenRoute.ProfileDetail> {
             ProfileDetailsScreen()
+        }
+        appNavComposable<ScreenRoute.ProfileSection> {
+            val type = it.toRoute<ScreenRoute.ProfileSection>().type
+            ProfileSectionScreen(type = type)
         }
         appNavComposable<ScreenRoute.RotaSwap> {
             val rota = it.toRoute<ScreenRoute.RotaSwap>().rota

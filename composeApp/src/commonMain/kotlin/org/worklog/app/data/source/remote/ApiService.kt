@@ -7,6 +7,7 @@ import io.ktor.client.plugins.ServerResponseException
 import io.ktor.client.request.forms.FormDataContent
 import io.ktor.client.request.forms.formData
 import io.ktor.client.request.forms.submitFormWithBinaryData
+import io.ktor.client.request.delete
 import io.ktor.client.request.get
 import io.ktor.client.request.parameter
 import io.ktor.client.request.post
@@ -89,7 +90,7 @@ class ApiService(
     ): ResultWrapper<T> {
         return safeApiCall {
             httpClient.post(endpoint) {
-
+                contentType(ContentType.Application.FormUrlEncoded)
                 setBody(FormDataContent(Parameters.build {
                     formData.forEach { (key, value) ->
                         append(key, value)
@@ -139,6 +140,14 @@ class ApiService(
                     setBody(body)
                 }
             }
+        }
+    }
+
+    suspend inline fun <reified T> delete(
+        endpoint: String
+    ): ResultWrapper<T> {
+        return safeApiCall {
+            httpClient.delete(endpoint)
         }
     }
 }

@@ -9,4 +9,19 @@ class RotaSwapHandoverUseCase(
 
     suspend fun rotaSwapRequest(myRotaId: Int, requestedRotaId: Int) =
         rotaRepository.rotaSwapRequest(myRotaId, requestedRotaId)
+
+    suspend fun getIncomingSwaps(forceRefresh: Boolean = false) =
+        rotaRepository.getIncomingSwaps(forceRefresh)
+
+    suspend fun acceptSwap(swapId: Int) =
+        rotaRepository.respondToSwap(swapId, "accept")
+
+    suspend fun denySwap(swapId: Int) =
+        rotaRepository.respondToSwap(swapId, "deny")
+
+    suspend fun cancelSwap(swapId: Int) =
+        rotaRepository.cancelSwap(swapId)
+
+    suspend fun cancelHandover(handoverId: Int) =
+        rotaRepository.cancelHandover(handoverId)
 }

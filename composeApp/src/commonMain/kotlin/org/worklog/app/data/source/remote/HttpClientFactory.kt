@@ -2,20 +2,27 @@ package org.worklog.app.data.source.remote
 
 import io.ktor.client.HttpClient
 import io.ktor.client.HttpClientConfig
+import io.ktor.client.call.body
 import io.ktor.client.plugins.DefaultRequest
-import io.ktor.client.plugins.HttpClientPlugin
 import io.ktor.client.plugins.HttpTimeout
+import io.ktor.client.plugins.auth.Auth
+import io.ktor.client.plugins.auth.providers.BearerTokens
+import io.ktor.client.plugins.auth.providers.bearer
 import io.ktor.client.plugins.contentnegotiation.ContentNegotiation
 import io.ktor.client.plugins.logging.LogLevel
 import io.ktor.client.plugins.logging.Logger
 import io.ktor.client.plugins.logging.Logging
-import io.ktor.client.request.HttpRequestPipeline
 import io.ktor.client.request.header
+import io.ktor.client.request.post
+import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.HttpHeaders
+import io.ktor.http.isSuccess
+import io.ktor.http.path
 import io.ktor.serialization.kotlinx.json.json
-import io.ktor.util.AttributeKey
 import kotlinx.serialization.json.Json
+import org.worklog.app.data.model.BaseResponse
+import org.worklog.app.data.model.RefreshTokenResponse
 import org.worklog.app.data.provider.AuthTokenProvider
 
 expect fun createHttpClient(authTokenProvider: AuthTokenProvider): HttpClient
@@ -26,45 +33,9 @@ private val noAuthPaths = listOf(
     "/reset-password",
     "/auth/otp/send",
     "/auth/otp/resend",
-    "/auth/otp/verify"
+    "/auth/otp/verify",
+    "/auth/refresh"
 )
-
-class BearerTokenPlugin private constructor(val provider: AuthTokenProvider) {
-
-    class Config {
-        lateinit var provider: AuthTokenProvider
-    }
-
-    companion object Plugin : HttpClientPlugin<Config, BearerTokenPlugin> {
-        override val key: AttributeKey<BearerTokenPlugin> = AttributeKey("BearerToken")
-
-        override fun prepare(block: Config.() -> Unit): BearerTokenPlugin {
-            return BearerTokenPlugin(Config().apply(block).provider)
-        }
-
-        override fun install(plugin: BearerTokenPlugin, scope: HttpClient) {
-            scope.requestPipeline.intercept(HttpRequestPipeline.State) {
-                val url = context.url.buildString()
-                val isAuthEndpoint = noAuthPaths.any { url.contains(it) }
-                
-                if (isAuthEndpoint) {
-                    context.headers.remove(HttpHeaders.Authorization)
-                } else {
-                    val token = plugin.provider.getTokenOrEmpty()
-                    if (token.isNotEmpty()) {
-                        val authHeaderValue = if (token.startsWith("Bearer ", ignoreCase = true)) {
-                            token
-                        } else {
-                            "Bearer $token"
-                        }
-                        context.headers.set(HttpHeaders.Authorization, authHeaderValue)
-                    }
-                }
-                proceed()
-            }
-        }
-    }
-}
 
 fun HttpClientConfig<*>.createBaseHttpClientConfig(
     authTokenProvider: AuthTokenProvider
@@ -92,7 +63,66 @@ fun HttpClientConfig<*>.createBaseHttpClientConfig(
         header(HttpHeaders.ContentType, ContentType.Application.Json)
         header(HttpHeaders.Accept, ContentType.Application.Json)
     }
-    install(BearerTokenPlugin) {
-        provider = authTokenProvider
+
+    install(Auth) {
+        bearer {
+            loadTokens {
+                val token = authTokenProvider.getTokenOrEmpty()
+                val refresh = authTokenProvider.getRefreshTokenOrEmpty()
+                println("Auth: Loading tokens - Access: ${token.take(10)}..., Refresh: ${refresh.take(10)}...")
+                if (token.isNotEmpty()) {
+                    BearerTokens(token, refresh)
+                } else null
+            }
+
+            refreshTokens {
+                val refreshToken = authTokenProvider.getRefreshTokenOrEmpty()
+                println("Auth: Refreshing tokens using: ${refreshToken.take(10)}...")
+                if (refreshToken.isEmpty()) {
+                    println("Auth: No refresh token available")
+                    return@refreshTokens null
+                }
+
+                try {
+                    val refreshResponse = client.post("https://mobile-api.gbspares.com/api/app/auth/refresh") {
+                        setBody(mapOf("refresh_token" to refreshToken))
+                        header(HttpHeaders.Authorization, null)
+                    }
+
+                    println("Auth: Refresh response status: ${refreshResponse.status}")
+
+                    if (refreshResponse.status.isSuccess()) {
+                        val baseResponse = refreshResponse.body<BaseResponse<RefreshTokenResponse>>()
+                        val newAccess = baseResponse.data?.accessToken
+                        val newRefresh = baseResponse.data?.refreshToken ?: refreshToken
+                        if (newAccess != null) {
+                            println("Auth: Token refresh successful")
+                            authTokenProvider.setTokens(newAccess, newRefresh)
+                            BearerTokens(newAccess, newRefresh)
+                        } else {
+                            println("Auth: Token refresh failed - Access token is null")
+                            authTokenProvider.emitForcedLogout()
+                            null
+                        }
+                    } else {
+                        println("Auth: Token refresh failed - HTTP ${refreshResponse.status}")
+                        authTokenProvider.emitForcedLogout()
+                        null
+                    }
+                } catch (e: Exception) {
+                    println("Auth: Token refresh failed with exception: ${e.message}")
+                    authTokenProvider.emitForcedLogout()
+                    null
+                }
+            }
+
+            // Return true to attach the bearer preemptively (default behavior for
+            // authenticated endpoints). Return false for auth endpoints (login,
+            // refresh, otp, reset) so the stale token isn't carried along.
+            sendWithoutRequest { request ->
+                val isNoAuth = noAuthPaths.any { path -> request.url.toString().contains(path) }
+                !isNoAuth
+            }
+        }
     }
 }

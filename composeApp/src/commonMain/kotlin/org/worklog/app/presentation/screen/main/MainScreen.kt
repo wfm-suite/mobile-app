@@ -12,22 +12,28 @@ import org.worklog.app.presentation.component.AppBottomNavigation
 import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.navigation.appNavComposable
 import org.worklog.app.presentation.screen.home.HomeScreen
+import org.worklog.app.presentation.screen.leave.request.LeaveRequestScreen
 import org.worklog.app.presentation.screen.leave.screen.LeaveScreen
 import org.worklog.app.presentation.screen.map.MapScreen
 import org.worklog.app.presentation.screen.message.MessageScreen
 import org.worklog.app.presentation.screen.profile.ProfileScreen
+import org.worklog.app.presentation.screen.profile.details.ProfileDetailsScreen
+import org.worklog.app.presentation.screen.profile.details.ProfileSectionScreen
 import org.worklog.app.presentation.screen.rota.RotaScreen
+import org.worklog.app.presentation.screen.shift.ShiftScreen
+import org.worklog.app.presentation.screen.notification.NotificationScreen
+import org.worklog.app.presentation.screen.swap.RotaSwapScreen
 
 import androidx.compose.runtime.CompositionLocalProvider
 import org.worklog.app.presentation.theme.LocalNavController
 
 @Composable
-fun MainScreen() {
-    MainScreenContent()
+fun MainScreen(notificationCount: Int = 0) {
+    MainScreenContent(notificationCount = notificationCount)
 }
 
 @Composable
-private fun MainScreenContent() {
+private fun MainScreenContent(notificationCount: Int = 0) {
 
     val navController = rememberNavController()
 
@@ -49,7 +55,7 @@ private fun MainScreenContent() {
                 startDestination = ScreenRoute.Home
             ) {
                 appNavComposable<ScreenRoute.Home> {
-                    HomeScreen()
+                    HomeScreen(notificationCount = notificationCount)
                 }
                 appNavComposable<ScreenRoute.Rota> {
                     RotaScreen()
@@ -70,6 +76,28 @@ private fun MainScreenContent() {
                         longitude = route.longitude,
                         label = route.label
                     )
+                }
+                appNavComposable<ScreenRoute.LeaveRequest> {
+                    val accruedHoliday = it.toRoute<ScreenRoute.LeaveRequest>().accruedHoliday
+                    LeaveRequestScreen(accruedHoliday = accruedHoliday)
+                }
+                appNavComposable<ScreenRoute.Shift> {
+                    val rota = it.toRoute<ScreenRoute.Shift>().rota
+                    ShiftScreen(rota = rota)
+                }
+                appNavComposable<ScreenRoute.ProfileDetail> {
+                    ProfileDetailsScreen()
+                }
+                appNavComposable<ScreenRoute.ProfileSection> {
+                    val type = it.toRoute<ScreenRoute.ProfileSection>().type
+                    ProfileSectionScreen(type = type)
+                }
+                appNavComposable<ScreenRoute.RotaSwap> {
+                    val rota = it.toRoute<ScreenRoute.RotaSwap>().rota
+                    RotaSwapScreen(rota = rota)
+                }
+                appNavComposable<ScreenRoute.Notifications> {
+                    NotificationScreen()
                 }
             }
         }

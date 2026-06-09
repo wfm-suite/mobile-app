@@ -8,6 +8,7 @@ import org.worklog.app.data.model.HolidayRequest
 import org.worklog.app.data.model.LeaveResponse
 import org.worklog.app.data.model.LoginResponse
 import org.worklog.app.data.model.MonthlyRotaResponse
+import org.worklog.app.data.model.MyHandoversResponse
 import org.worklog.app.data.model.OpenRotaResponse
 import org.worklog.app.data.model.RotaHanoverRequest
 import org.worklog.app.data.model.RotaResponse
@@ -19,7 +20,16 @@ import org.worklog.app.data.model.WeeklyRotaResponse
 import kotlin.time.Clock
 
 import org.worklog.app.data.model.ShiftRequest
+import org.worklog.app.data.model.IncomingSwapsResponse
 import org.worklog.app.data.model.SwapRequest
+import org.worklog.app.data.model.SwapRespondRequest
+import org.worklog.app.data.model.NotificationsResponse
+import org.worklog.app.data.model.UnreadCountResponse
+import org.worklog.app.data.model.request.AddressRequest
+import org.worklog.app.data.model.request.ChangePasswordRequest
+import org.worklog.app.data.model.request.EmergencyContactRequest
+import org.worklog.app.data.model.request.ResignationRequest
+import org.worklog.app.data.model.request.TrainingCourseRequest
 
 class RemoteDataSourceImpl(
     val apiService: ApiService
@@ -34,6 +44,13 @@ class RemoteDataSourceImpl(
         return apiService.postForm<BaseResponse<LoginResponse>>(
             endpoint = "${baseUrl}/login",
             formData = mapOf("email" to email, "password" to password)
+        )
+    }
+
+    override suspend fun refreshToken(refreshToken: String): ResultWrapper<BaseResponse<org.worklog.app.data.model.RefreshTokenResponse>> {
+        return apiService.post<BaseResponse<org.worklog.app.data.model.RefreshTokenResponse>>(
+            endpoint = "${baseUrl}/auth/refresh",
+            body = mapOf("refresh_token" to refreshToken)
         )
     }
 
@@ -198,6 +215,12 @@ class RemoteDataSourceImpl(
         )
     }
 
+    override suspend fun getBlockedLeaveDates(): ResultWrapper<BaseResponse<org.worklog.app.data.model.BlockedDatesResponse>> {
+        return apiService.get<BaseResponse<org.worklog.app.data.model.BlockedDatesResponse>>(
+            endpoint = "${baseUrl}/leave/blocked-dates"
+        )
+    }
+
     override suspend fun requestHoliday(
         reason: String,
         dates: List<String>
@@ -264,6 +287,28 @@ class RemoteDataSourceImpl(
         )
     }
 
+    override suspend fun getIncomingSwaps(): ResultWrapper<BaseResponse<IncomingSwapsResponse>> {
+        return apiService.get<BaseResponse<IncomingSwapsResponse>>(
+            endpoint = "${baseUrl}/swap/incoming"
+        )
+    }
+
+    override suspend fun respondToSwap(
+        swapId: Int,
+        action: String
+    ): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post<BaseResponse<Unit>>(
+            endpoint = "${baseUrl}/swap/$swapId/respond",
+            body = SwapRespondRequest(action = action)
+        )
+    }
+
+    override suspend fun cancelSwap(swapId: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post<BaseResponse<Unit>>(
+            endpoint = "${baseUrl}/swap/$swapId/cancel"
+        )
+    }
+
     override suspend fun rotaHanoverRequest(
         rotaId: Int,
     ): ResultWrapper<BaseResponse<Unit>> {
@@ -273,6 +318,18 @@ class RemoteDataSourceImpl(
         return apiService.post<BaseResponse<Unit>>(
             endpoint = "${baseUrl}/handover/handover-request",
             body = hanoverRequest
+        )
+    }
+
+    override suspend fun getMyHandovers(): ResultWrapper<BaseResponse<MyHandoversResponse>> {
+        return apiService.get<BaseResponse<MyHandoversResponse>>(
+            endpoint = "${baseUrl}/handover/my"
+        )
+    }
+
+    override suspend fun cancelHandover(handoverId: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post<BaseResponse<Unit>>(
+            endpoint = "${baseUrl}/handover/$handoverId/cancel"
         )
     }
 
@@ -293,6 +350,117 @@ class RemoteDataSourceImpl(
         return apiService.postForm<BaseResponse<TimeCardResponse>>(
             endpoint = "${baseUrl}/timecard/all",
             formData = formData
+        )
+    }
+
+    override suspend fun addAddress(request: AddressRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/profile/address",
+            body = request
+        )
+    }
+
+    override suspend fun updateAddress(id: Int, request: AddressRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.put(
+            endpoint = "${baseUrl}/profile/address/$id",
+            body = request
+        )
+    }
+
+    override suspend fun deleteAddress(id: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.delete(
+            endpoint = "${baseUrl}/profile/address/$id"
+        )
+    }
+
+    override suspend fun addEmergencyContact(request: EmergencyContactRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/profile/emergency-contact",
+            body = request
+        )
+    }
+
+    override suspend fun updateEmergencyContact(id: Int, request: EmergencyContactRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.put(
+            endpoint = "${baseUrl}/profile/emergency-contact/$id",
+            body = request
+        )
+    }
+
+    override suspend fun deleteEmergencyContact(id: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.delete(
+            endpoint = "${baseUrl}/profile/emergency-contact/$id"
+        )
+    }
+
+    override suspend fun addTrainingCourse(request: TrainingCourseRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/profile/training-course",
+            body = request
+        )
+    }
+
+    override suspend fun updateTrainingCourse(id: Int, request: TrainingCourseRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.put(
+            endpoint = "${baseUrl}/profile/training-course/$id",
+            body = request
+        )
+    }
+
+    override suspend fun deleteTrainingCourse(id: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.delete(
+            endpoint = "${baseUrl}/profile/training-course/$id"
+        )
+    }
+
+    override suspend fun submitResignation(request: ResignationRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/profile/resignation",
+            body = request
+        )
+    }
+
+    override suspend fun changePassword(request: ChangePasswordRequest): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/profile/change-password",
+            body = request
+        )
+    }
+
+    override suspend fun getNotifications(): ResultWrapper<BaseResponse<NotificationsResponse>> {
+        return apiService.get(
+            endpoint = "${baseUrl}/notifications"
+        )
+    }
+
+    override suspend fun getUnreadCount(): ResultWrapper<BaseResponse<UnreadCountResponse>> {
+        return apiService.get(
+            endpoint = "${baseUrl}/notifications/unread-count"
+        )
+    }
+
+    override suspend fun markNotificationRead(id: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/notifications/$id/read"
+        )
+    }
+
+    override suspend fun markAllNotificationsRead(): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/notifications/read-all"
+        )
+    }
+
+    override suspend fun deleteNotification(id: Int): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.delete(
+            endpoint = "${baseUrl}/notifications/$id"
+        )
+    }
+
+    override suspend fun saveDeviceToken(token: String): ResultWrapper<BaseResponse<Unit>> {
+        return apiService.post(
+            endpoint = "${baseUrl}/device-token",
+            body = mapOf("token" to token)
         )
     }
 

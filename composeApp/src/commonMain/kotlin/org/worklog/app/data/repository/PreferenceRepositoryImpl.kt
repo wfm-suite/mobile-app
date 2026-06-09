@@ -22,6 +22,12 @@ class PreferenceRepositoryImpl(
     override suspend fun saveAuthToken(token: String) =
         dataSource.saveAuthToken(token)
 
+    override fun getRefreshToken(): Flow<String> =
+        dataSource.getRefreshToken()
+
+    override suspend fun saveRefreshToken(token: String) =
+        dataSource.saveRefreshToken(token)
+
     override fun observeCurrentShiftStatus(id: String): Flow<Boolean> {
         return dataSource.observeCurrentShiftStatus(id)
     }

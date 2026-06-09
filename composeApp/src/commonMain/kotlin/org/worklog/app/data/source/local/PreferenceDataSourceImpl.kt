@@ -15,6 +15,7 @@ class PreferenceDataSourceImpl(
 
     private object Keys {
         val API_KEY = stringPreferencesKey("api_key")
+        val REFRESH_TOKEN = stringPreferencesKey("refresh_token")
         val LANGUAGE = stringPreferencesKey("language")
         val FIRST_LAUNCH = booleanPreferencesKey("first_launch")
         val CURRENT_SHIFT_ID = stringPreferencesKey("current_shift_id")
@@ -59,6 +60,12 @@ class PreferenceDataSourceImpl(
 
     override suspend fun saveAuthToken(token: String) =
         write(Keys.API_KEY, token)
+
+    override fun getRefreshToken(): Flow<String> =
+        readFlow(Keys.REFRESH_TOKEN, "")
+
+    override suspend fun saveRefreshToken(token: String) =
+        write(Keys.REFRESH_TOKEN, token)
 
     override fun observeCurrentShiftStatus(id: String): Flow<Boolean> {
         return readFlow(Keys.CURRENT_SHIFT_ID, Defaults.CURRENT_SHIFT_ID).map {

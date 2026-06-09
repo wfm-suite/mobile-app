@@ -18,6 +18,10 @@ data class Rota(
     val shiftType: String,
     val shiftStatus: String,
     val status: RotaStatus,
+    val requestType: String = "", // "handover" | "swap" | ""
+    val requestId: Int = 0, // swap.id or handover.id when status==PENDING
+    val recipientName: String = "",
+    val recipientAvatarUrl: String = "",
     val designation: String,
     val startTimeEnabled: Boolean,
     val floorName: String,

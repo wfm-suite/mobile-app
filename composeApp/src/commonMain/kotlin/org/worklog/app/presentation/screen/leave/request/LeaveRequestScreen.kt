@@ -8,20 +8,17 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.stringResource
 import org.worklog.app.presentation.component.AppTopbarWithBack
 import org.worklog.app.presentation.component.CustomTabLayout
 import org.worklog.app.presentation.screen.leave.request.holiday.HolidayRequestScreen
 import org.worklog.app.presentation.screen.leave.request.planned.RequestPlannedLeaveScreen
+import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.dimens
 import worklog.composeapp.generated.resources.Res
@@ -35,7 +32,7 @@ fun LeaveRequestScreen(
     val navController = LocalNavController.current
     val pagerState = rememberPagerState(pageCount = { 2 })
 
-    // Create screens once per RotaScreenContent composition
+    // Create screens once per composition — avoids re-instantiating on recomposition
     val screens = remember {
         listOf<@Composable () -> Unit>(
             { HolidayRequestScreen(accruedHoliday = accruedHoliday) },
@@ -47,7 +44,7 @@ fun LeaveRequestScreen(
         pagerState = pagerState,
         screens = screens,
         onBackClick = { navController.navigateUp() },
-        onNotificationClick = { }
+        onNotificationClick = { navController.navigate(ScreenRoute.Notifications) }
     )
 }
 
@@ -72,7 +69,6 @@ fun LeaveRequestScreenContent(
             modifier = Modifier
                 .fillMaxSize()
                 .padding(paddingValues)
-                .verticalScroll(rememberScrollState())
         ) {
 
             /*CustomTabLayout(

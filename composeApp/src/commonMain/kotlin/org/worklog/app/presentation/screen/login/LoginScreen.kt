@@ -56,7 +56,7 @@ import worklog.composeapp.generated.resources.enter_otp
 import worklog.composeapp.generated.resources.enter_otp_title
 import worklog.composeapp.generated.resources.enter_phone_title
 import worklog.composeapp.generated.resources.forgot_password
-import worklog.composeapp.generated.resources.ic_app_banner
+import worklog.composeapp.generated.resources.ic_forest_logo
 import worklog.composeapp.generated.resources.log_in
 import worklog.composeapp.generated.resources.login_with_email
 import worklog.composeapp.generated.resources.login_with_phone
@@ -97,9 +97,9 @@ fun LoginScreen(
             Spacer(modifier = Modifier.weight(.3f))
 
             Image(
-                painter = painterResource(Res.drawable.ic_app_banner),
+                painter = painterResource(Res.drawable.ic_forest_logo),
                 contentDescription = null,
-                modifier = Modifier.size(130.dp)
+                modifier = Modifier.size(180.dp)
             )
 
             Spacer(modifier = Modifier.height(32.dp))

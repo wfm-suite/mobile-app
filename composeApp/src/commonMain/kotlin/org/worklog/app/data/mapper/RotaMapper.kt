@@ -2,8 +2,10 @@ package org.worklog.app.data.mapper
 
 import kotlinx.datetime.LocalDate
 import org.worklog.app.data.model.EmployeeDto
+import org.worklog.app.data.model.MyHandoverDto
 import org.worklog.app.data.model.RotaDto
 import org.worklog.app.domain.model.EmployeeRota
+import org.worklog.app.domain.model.MyHandover
 import org.worklog.app.domain.model.Rota
 import org.worklog.app.domain.model.RotaStatus
 
@@ -25,7 +27,11 @@ fun RotaDto.toDomainModel(designation: String): Rota {
         remarks = remarks?.toShortShiftName() ?: "",
         shiftType = shiftType?.toShortShiftName() ?: "",
         shiftStatus = shiftStatus ?: "",
-        status = swapStatus.toRotaStatus(),
+        status = requestStatus.toRotaStatus(),
+        requestType = requestType ?: "",
+        requestId = requestId ?: 0,
+        recipientName = requestRecipient?.name ?: "",
+        recipientAvatarUrl = requestRecipient?.imageUrl ?: "",
         designation = designation,
         startTimeEnabled = startTimeEnabled,
         floorName = floorName ?: "",
@@ -48,6 +54,21 @@ fun String.toShortShiftName(): String {
         "night shift", "evening" -> "N"
         else -> this
     }
+}
+
+fun MyHandoverDto.toDomainModel(): MyHandover? {
+    val date = rota?.date ?: return null
+    return MyHandover(
+        id = id,
+        status = status.toRotaStatus(),
+        requestedAt = requestedAt ?: "",
+        approvedAt = approvedAt ?: "",
+        note = note ?: "",
+        rotaId = rota.id ?: 0,
+        rotaDate = date,
+        shiftStartTime = rota.shiftStartTime ?: "",
+        shiftEndTime = rota.shiftEndTime ?: ""
+    )
 }
 
 fun String?.toRotaStatus(): RotaStatus {

@@ -22,7 +22,9 @@ data class LeaveSummaryDto(
     @SerialName("days_remaining")
     val daysRemaining: Float,
     @SerialName("days_pending")
-    val pendingLeave: Float
+    val pendingLeave: Float,
+    @SerialName("days_approved")
+    val approvedLeave: Float = 0f
 )
 
 @Serializable

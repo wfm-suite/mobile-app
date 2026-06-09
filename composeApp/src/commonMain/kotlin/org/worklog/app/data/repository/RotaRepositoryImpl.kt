@@ -7,6 +7,8 @@ import org.worklog.app.data.source.remote.RemoteDataSource
 import org.worklog.app.data.util.handleApiResponse
 import org.worklog.app.data.util.handleSuccessResponse
 import org.worklog.app.domain.model.EmployeeRota
+import org.worklog.app.domain.model.IncomingSwap
+import org.worklog.app.domain.model.MyHandover
 import org.worklog.app.domain.model.Rota
 import org.worklog.app.domain.repository.RotaRepository
 
@@ -21,6 +23,8 @@ class RotaRepositoryImpl(
     private var upcomingRotasExceptAuthUserCache: List<EmployeeRota>? = null
     private var upcomingOpenRotaCache: List<Rota>? = null
     private val authUserLastNDaysRotaCache = mutableMapOf<Int, List<Rota>>()
+    private var myHandoversCache: List<MyHandover>? = null
+    private var incomingSwapsCache: List<IncomingSwap>? = null
 
     private fun invalidateAll() {
         rotaByUserIdCache.clear()
@@ -30,6 +34,8 @@ class RotaRepositoryImpl(
         upcomingRotasExceptAuthUserCache = null
         upcomingOpenRotaCache = null
         authUserLastNDaysRotaCache.clear()
+        myHandoversCache = null
+        incomingSwapsCache = null
     }
 
     override suspend fun getRotaByUserId(userId: Int, forceRefresh: Boolean): ResultWrapper<List<Rota>> {
@@ -48,8 +54,9 @@ class RotaRepositoryImpl(
             call = remoteDataSource::getAllUsersWeeklyRota,
             mapper = { response ->
                 response.rotas.flatMap { employeeRota ->
+                    val emp = employeeRota.employee ?: return@flatMap emptyList<EmployeeRota>()
                     employeeRota.rotas.map { rota ->
-                        rota.toEmployeeRota(employeeRota.employee)
+                        rota.toEmployeeRota(emp)
                     }
                 }
             }
@@ -62,8 +69,9 @@ class RotaRepositoryImpl(
             call = remoteDataSource::getAllUsersMonthlyRota,
             mapper = { response ->
                 response.rotas.flatMap { employeeRota ->
+                    val emp = employeeRota.employee ?: return@flatMap emptyList<EmployeeRota>()
                     employeeRota.rotas.map { rota ->
-                        rota.toEmployeeRota(employeeRota.employee)
+                        rota.toEmployeeRota(emp)
                     }
                 }
             }
@@ -81,8 +89,9 @@ class RotaRepositoryImpl(
             call = { remoteDataSource.getAllUsersMonthlyRotaByMonthYear(month, year) },
             mapper = { response ->
                 response.rotas.flatMap { employeeRota ->
+                    val emp = employeeRota.employee ?: return@flatMap emptyList<EmployeeRota>()
                     employeeRota.rotas.map { rota ->
-                        rota.toEmployeeRota(employeeRota.employee)
+                        rota.toEmployeeRota(emp)
                     }
                 }
             }
@@ -95,8 +104,9 @@ class RotaRepositoryImpl(
             call = remoteDataSource::getUpcomingRotasExceptAuthUser,
             mapper = { response ->
                 response.upcomingRotas?.flatMap { employeeRota ->
+                    val emp = employeeRota.employee ?: return@flatMap emptyList<EmployeeRota>()
                     employeeRota.rotas.map { rota ->
-                        rota.toEmployeeRota(employeeRota.employee)
+                        rota.toEmployeeRota(emp)
                     }
                 } ?: emptyList()
             }
@@ -117,6 +127,26 @@ class RotaRepositoryImpl(
         ).also { if (it is ResultWrapper.Success) invalidateAll() }
     }
 
+    override suspend fun getIncomingSwaps(forceRefresh: Boolean): ResultWrapper<List<IncomingSwap>> {
+        if (!forceRefresh) incomingSwapsCache?.let { return ResultWrapper.Success(it) }
+        return handleApiResponse(
+            call = remoteDataSource::getIncomingSwaps,
+            mapper = { response -> response.swaps.mapNotNull { it.toDomainModel() } }
+        ).also { if (it is ResultWrapper.Success) incomingSwapsCache = it.data }
+    }
+
+    override suspend fun respondToSwap(swapId: Int, action: String): ResultWrapper<String> {
+        return handleSuccessResponse(
+            call = { remoteDataSource.respondToSwap(swapId = swapId, action = action) }
+        ).also { if (it is ResultWrapper.Success) invalidateAll() }
+    }
+
+    override suspend fun cancelSwap(swapId: Int): ResultWrapper<String> {
+        return handleSuccessResponse(
+            call = { remoteDataSource.cancelSwap(swapId = swapId) }
+        ).also { if (it is ResultWrapper.Success) invalidateAll() }
+    }
+
     override suspend fun rotaHanoverRequest(
         rotaId: Int,
     ): ResultWrapper<String> {
@@ -127,6 +157,22 @@ class RotaRepositoryImpl(
                 )
             },
         ).also { if (it is ResultWrapper.Success) invalidateAll() }
+    }
+
+    override suspend fun cancelHandover(handoverId: Int): ResultWrapper<String> {
+        return handleSuccessResponse(
+            call = { remoteDataSource.cancelHandover(handoverId = handoverId) }
+        ).also { if (it is ResultWrapper.Success) invalidateAll() }
+    }
+
+    override suspend fun getMyHandovers(forceRefresh: Boolean): ResultWrapper<List<MyHandover>> {
+        if (!forceRefresh) myHandoversCache?.let { return ResultWrapper.Success(it) }
+        return handleApiResponse(
+            call = remoteDataSource::getMyHandovers,
+            mapper = { response ->
+                response.handovers.mapNotNull { it.toDomainModel() }
+            }
+        ).also { if (it is ResultWrapper.Success) myHandoversCache = it.data }
     }
 
     override suspend fun getUpcomingOpenRota(forceRefresh: Boolean): ResultWrapper<List<Rota>> {

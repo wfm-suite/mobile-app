@@ -8,8 +8,6 @@ import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.PagerState
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
@@ -23,6 +21,9 @@ import org.worklog.app.presentation.component.CustomTabLayout
 import org.worklog.app.presentation.component.TopbarWithLogo
 import org.worklog.app.presentation.screen.rota.my_team.MyTeamScreen
 import org.worklog.app.presentation.screen.rota.time_card.TimeCardScreen
+import org.worklog.app.presentation.navigation.ScreenRoute
+import org.worklog.app.presentation.theme.LocalNavController
+import org.worklog.app.presentation.theme.LocalRootNavController
 import org.worklog.app.presentation.theme.dimens
 import worklog.composeapp.generated.resources.Res
 import worklog.composeapp.generated.resources.my_team
@@ -32,6 +33,8 @@ import worklog.composeapp.generated.resources.time_card
 fun RotaScreen() {
     val pagerState = rememberPagerState(pageCount = { 2 })
     val coroutineScope = rememberCoroutineScope()
+    val navController = LocalNavController.current
+    val rootNavController = LocalRootNavController.current
 
     // Create screens once per RotaScreenContent composition
     val screens = remember {
@@ -44,7 +47,9 @@ fun RotaScreen() {
     RotaScreenContent(
         pagerState = pagerState,
         coroutineScope = coroutineScope,
-        screens = screens
+        screens = screens,
+        onBackClick = { rootNavController.navigateUp() },
+        onNotificationClick = { navController.navigate(ScreenRoute.Notifications) }
     )
 }
 
@@ -52,7 +57,9 @@ fun RotaScreen() {
 private fun RotaScreenContent(
     pagerState: PagerState,
     coroutineScope: CoroutineScope,
-    screens: List<@Composable (() -> Unit)>
+    screens: List<@Composable (() -> Unit)>,
+    onBackClick: () -> Unit = {},
+    onNotificationClick: () -> Unit = {}
 ) {
 
     Scaffold(
@@ -60,16 +67,15 @@ private fun RotaScreenContent(
             .systemBarsPadding(),
         topBar = {
             TopbarWithLogo(
-                onNotificationClick = {
-
-                }
+                showBack = true,
+                onBackClick = onBackClick,
+                onNotificationClick = onNotificationClick
             )
         }
     ) {
         Column(
             modifier = Modifier.fillMaxSize()
-                .padding(it)
-                .verticalScroll(rememberScrollState()),
+                .padding(it),
         ) {
             CustomTabLayout(
                 modifier = Modifier.fillMaxWidth()

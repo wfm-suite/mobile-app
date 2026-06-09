@@ -14,6 +14,7 @@ data class RotaSwapUiState(
     val userRota: Rota? = null,
     val isLoading: Boolean = true,
     val isSwapRequesting: Boolean = false,
+    val isCancelling: Boolean = false,
     val isRequestSent: Boolean = false,
     val message: String? = null
 )

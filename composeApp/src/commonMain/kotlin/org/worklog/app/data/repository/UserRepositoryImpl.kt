@@ -6,6 +6,11 @@ import org.worklog.app.core.util.ResultWrapper
 import org.worklog.app.data.mapper.toDomain
 import org.worklog.app.data.mapper.toDomainModel
 import org.worklog.app.data.mapper.toUpdateProfileRequest
+import org.worklog.app.data.model.request.AddressRequest
+import org.worklog.app.data.model.request.ChangePasswordRequest
+import org.worklog.app.data.model.request.EmergencyContactRequest
+import org.worklog.app.data.model.request.ResignationRequest
+import org.worklog.app.data.model.request.TrainingCourseRequest
 import org.worklog.app.data.provider.AuthTokenProvider
 import org.worklog.app.data.source.local.PreferenceDataSource
 import org.worklog.app.data.source.remote.RemoteDataSource
@@ -85,10 +90,15 @@ class UserRepositoryImpl(
             call = {
                 val result = remoteDataSource.login(username, password)
                 if (result is ResultWrapper.Success) {
-                    val token = result.data.data?.accessToken ?: result.data.data?.token
-                    token?.let {
+                    val accessToken = result.data.data?.accessToken ?: result.data.data?.token
+                    val refreshToken = result.data.data?.refreshToken
+                    accessToken?.let {
                         authTokenProvider.setToken(it)
                         preferenceDataSource.saveAuthToken(it)
+                    }
+                    refreshToken?.let {
+                        authTokenProvider.setRefreshToken(it)
+                        preferenceDataSource.saveRefreshToken(it)
                     }
                 }
                 result
@@ -110,10 +120,15 @@ class UserRepositoryImpl(
             call = {
                 val result = remoteDataSource.verifyOtp(phone, otp)
                 if (result is ResultWrapper.Success) {
-                    val token = result.data.data?.accessToken ?: result.data.data?.token
-                    token?.let {
+                    val accessToken = result.data.data?.accessToken ?: result.data.data?.token
+                    val refreshToken = result.data.data?.refreshToken
+                    accessToken?.let {
                         authTokenProvider.setToken(it)
                         preferenceDataSource.saveAuthToken(it)
+                    }
+                    refreshToken?.let {
+                        authTokenProvider.setRefreshToken(it)
+                        preferenceDataSource.saveRefreshToken(it)
                     }
                 }
                 result
@@ -142,6 +157,7 @@ class UserRepositoryImpl(
     override suspend fun logout(): ResultWrapper<Unit> {
         authTokenProvider.clearToken()
         preferenceDataSource.saveAuthToken("")
+        preferenceDataSource.saveRefreshToken("")
         _userProfile.value = ResultWrapper.Loading
         invalidateRotaCaches()
         leaveSummaryCache = null
@@ -220,12 +236,28 @@ class UserRepositoryImpl(
         ).also { if (it is ResultWrapper.Success) leaveSummaryCache = it.data }
     }
 
+    private var blockedLeaveDatesCache: Set<String>? = null
+
+    override suspend fun getBlockedLeaveDates(forceRefresh: Boolean): ResultWrapper<Set<String>> {
+        if (!forceRefresh) blockedLeaveDatesCache?.let { return ResultWrapper.Success(it) }
+        return handleApiResponse(
+            call = { remoteDataSource.getBlockedLeaveDates() },
+            mapper = { it.blockedDates.toSet() }
+        ).also { if (it is ResultWrapper.Success) blockedLeaveDatesCache = it.data }
+    }
+
     override suspend fun requestHoliday(
         reason: String,
         dates: List<String>
     ): ResultWrapper<String> {
         return when (val result = remoteDataSource.requestHoliday(reason, dates)) {
-            is ResultWrapper.Success -> ResultWrapper.Success(result.data.message)
+            is ResultWrapper.Success -> {
+                // Invalidate caches so LeaveScreen and HolidayRequestScreen
+                // always fetch fresh data after a request is submitted.
+                leaveSummaryCache = null
+                authMonthlyRotaCache = null
+                ResultWrapper.Success(result.data.message)
+            }
             is ResultWrapper.Error -> result
             is ResultWrapper.Loading -> result
         }
@@ -260,5 +292,68 @@ class UserRepositoryImpl(
                 response.employees.map { it.toDomain() }
             }
         ).also { if (it is ResultWrapper.Success) allEmployeesCache = it.data }
+    }
+
+    override suspend fun addAddress(request: AddressRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.addAddress(request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun updateAddress(id: Int, request: AddressRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.updateAddress(id, request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun deleteAddress(id: Int): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.deleteAddress(id) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun addEmergencyContact(request: EmergencyContactRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.addEmergencyContact(request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun updateEmergencyContact(id: Int, request: EmergencyContactRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.updateEmergencyContact(id, request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun deleteEmergencyContact(id: Int): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.deleteEmergencyContact(id) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun addTrainingCourse(request: TrainingCourseRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.addTrainingCourse(request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun updateTrainingCourse(id: Int, request: TrainingCourseRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.updateTrainingCourse(id, request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun deleteTrainingCourse(id: Int): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.deleteTrainingCourse(id) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun submitResignation(request: ResignationRequest): ResultWrapper<String> {
+        return handleSuccessResponse { remoteDataSource.submitResignation(request) }
+            .also { if (it is ResultWrapper.Success) loadUserProfile() }
+    }
+
+    override suspend fun changePassword(
+        currentPassword: String,
+        newPassword: String,
+        confirmPassword: String
+    ): ResultWrapper<String> {
+        val request = ChangePasswordRequest(
+            currentPassword = currentPassword,
+            newPassword = newPassword,
+            confirmPassword = confirmPassword
+        )
+        return handleSuccessResponse { remoteDataSource.changePassword(request) }
     }
 }

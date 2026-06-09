@@ -15,6 +15,7 @@ fun LeaveResponse.toDomain(): LeaveSummary {
         totalAllowance = summary.totalAllowance,
         daysTaken = summary.daysTaken,
         pendingLeave = summary.pendingLeave,
+        approvedLeave = summary.approvedLeave,
         history = history.map { it.toDomain() }
     )
 }
@@ -27,7 +28,8 @@ fun LeaveHistoryDto.toDomain(): LeaveHistory {
         requestedToDate = requestedToDate,
         requestedTotalDay = requestedTotalDay,
         status = status,
-        comments = comments
+        comments = comments,
+        createdAt = createdAt
     )
 }
 

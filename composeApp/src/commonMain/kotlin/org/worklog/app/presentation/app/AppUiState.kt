@@ -6,5 +6,6 @@ data class AppUiState(
     val isLoading: Boolean = false,
     val showHomeShimmer: Boolean = false,
     val error: String? = null,
-    val initialScreen: ScreenRoute? = null
+    val initialScreen: ScreenRoute? = null,
+    val notificationCount: Int = 0
 )

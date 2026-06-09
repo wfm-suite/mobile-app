@@ -5,8 +5,9 @@ data class LeaveSummary(
     val remainingLeave: Float,
     val accruedHolidays: Float,
     val totalAllowance: Float,
-    val pendingLeave: Float,
-    val daysTaken: Float,
+    val pendingLeave: Float,         // = "Requested" — submitted, not yet approved
+    val approvedLeave: Float = 0f,   // approved by manager but not yet taken
+    val daysTaken: Float,            // already past dates that were taken
     val history: List<LeaveHistory> = emptyList()
 )
 
@@ -17,7 +18,8 @@ data class LeaveHistory(
     val requestedToDate: String,
     val requestedTotalDay: String,
     val status: String,
-    val comments: String?
+    val comments: String?,
+    val createdAt: String
 )
 
 data class LeaveType(

@@ -21,4 +21,7 @@ class GetRotaUseCase(
 
     suspend fun getUpcomingOpenRota(forceRefresh: Boolean = false) =
         rotaRepository.getUpcomingOpenRota(forceRefresh)
+
+    suspend fun getMyHandovers(forceRefresh: Boolean = false) =
+        rotaRepository.getMyHandovers(forceRefresh)
 }

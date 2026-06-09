@@ -43,7 +43,7 @@ import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.theme.LocalNavController
 import org.worklog.app.presentation.theme.dimens
 import worklog.composeapp.generated.resources.Res
-import worklog.composeapp.generated.resources.ic_app_banner
+import worklog.composeapp.generated.resources.ic_forest_logo
 import worklog.composeapp.generated.resources.onboarding_btn_continue
 import worklog.composeapp.generated.resources.onboarding_btn_get_started
 import worklog.composeapp.generated.resources.onboarding_desc_1
@@ -62,20 +62,20 @@ data class OnBoardingModel(
 
 val onBoardingList = listOf(
     OnBoardingModel(
-        Res.drawable.ic_app_banner,
+        Res.drawable.ic_forest_logo,
         Res.string.onboarding_title_1,
         Res.string.onboarding_desc_1,
         Res.string.onboarding_btn_continue
     ),
     OnBoardingModel(
-        Res.drawable.ic_app_banner,
+        Res.drawable.ic_forest_logo,
         Res.string.onboarding_title_2,
         Res.string.onboarding_desc_2,
         Res.string.onboarding_btn_continue
     ),
 
     OnBoardingModel(
-        Res.drawable.ic_app_banner,
+        Res.drawable.ic_forest_logo,
         Res.string.onboarding_title_3,
         Res.string.onboarding_desc_3,
         Res.string.onboarding_btn_get_started

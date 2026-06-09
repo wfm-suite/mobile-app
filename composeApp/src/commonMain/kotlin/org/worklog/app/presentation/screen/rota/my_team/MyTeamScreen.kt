@@ -1,6 +1,10 @@
 package org.worklog.app.presentation.screen.rota.my_team
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
@@ -31,8 +35,8 @@ import org.worklog.app.domain.model.UserInfo
 import org.worklog.app.presentation.component.CalendarHeader
 import org.worklog.app.presentation.component.CalendarLayout
 import org.worklog.app.presentation.component.CustomCard
-import org.worklog.app.presentation.component.CustomTabLayout
 import org.worklog.app.presentation.component.ShimmerBox
+import org.worklog.app.presentation.component.TabButton
 import org.worklog.app.presentation.component.TeamShiftCard
 import org.worklog.app.presentation.navigation.ScreenRoute
 import org.worklog.app.presentation.theme.LocalNavController
@@ -55,15 +59,25 @@ fun MyTeamScreen(
         }
     }
 
+    // Today is highlighted by a red border via `isToday` in the calendar cell.
+    // Don't also pass today as "selected" — the cyan selection ring would hide the red.
+    // Filtering still uses `selectedDate` in the ViewModel.
+    val todayStr = Clock.System.todayIn(TimeZone.currentSystemDefault()).toString()
+    val visibleSelectedDates = uiState.selectedDate
+        ?.takeIf { it.isNotBlank() && it != todayStr }
+        ?.let { listOf(it) }
+        ?: emptyList()
+
     MyTeamScreenContent(
         isLoading = uiState.isLoading,
         isCalendarExpanded = uiState.isCalendarExpanded,
         userInfo = uiState.userInfo,
-        calendarRotas = if (uiState.isCalendarExpanded) {
-            uiState.monthlyRotas.filter { it.employee.id.toString() == uiState.userInfo?.id.toString() }
-        } else {
-            uiState.weeklyRotas.filter { it.employee.id.toString() == uiState.userInfo?.id.toString() }
-        },
+        cancellingRequestId = uiState.cancellingRequestId,
+        // Always feed the calendar the user's MONTHLY rotas — needed so the
+        // weekly-strip pager has multiple weeks to swipe through. Weekly data
+        // alone gives the pager only 1 page → no slide.
+        calendarRotas = uiState.monthlyRotas
+            .filter { it.employee.id.toString() == uiState.userInfo?.id.toString() },
         rotas = uiState.displayRotas,
         shiftTypes = uiState.shiftTypes,
         selectedShiftType = uiState.selectedShiftStatus,
@@ -72,13 +86,13 @@ fun MyTeamScreen(
         selectedMonth = uiState.selectedMonth,
         selectedYear = uiState.selectedYear,
         onCalendarToggle = viewModel::onCalendarToggle,
-        selectedDates = if (uiState.selectedDate != null) listOf(
-            uiState.selectedDate ?: ""
-        ) else emptyList(),
+        selectedDates = visibleSelectedDates,
         onDateSelected = viewModel::onDateSelected,
         onShiftTypeSelected = viewModel::onShiftTypeSelected,
         onFloorNameSelected = viewModel::onFloorNameSelected,
         onMonthYearSelected = viewModel::onMonthYearSelected,
+        onVisibleMonthChanged = viewModel::onWeekMonthChanged,
+        onCancelRequest = viewModel::onCancelRequest,
         onRotaClick = { rota ->
             val currentUserId = uiState.userInfo?.id
             val rotaEmployeeId = rota.employee.id.toString()
@@ -118,12 +132,15 @@ private fun MyTeamScreenContent(
     selectedFloorName: String?,
     selectedMonth: Int?,
     selectedYear: Int?,
+    cancellingRequestId: Int? = null,
     onCalendarToggle: () -> Unit,
     onRotaClick: (EmployeeRota) -> Unit = {},
     onDateSelected: (String) -> Unit = {},
     onShiftTypeSelected: (String) -> Unit = {},
     onFloorNameSelected: (String) -> Unit = {},
-    onMonthYearSelected: (Int, Int) -> Unit = { _, _ -> }
+    onMonthYearSelected: (Int, Int) -> Unit = { _, _ -> },
+    onVisibleMonthChanged: (Int, Int) -> Unit = { _, _ -> },
+    onCancelRequest: (EmployeeRota) -> Unit = {}
 ) {
     Column(
         modifier = Modifier
@@ -143,7 +160,9 @@ private fun MyTeamScreenContent(
                 selectedYear = selectedYear,
                 onMonthYearSelected = onMonthYearSelected,
                 isLoading = isLoading,
-                showFloorDropdown = true
+                showFloorDropdown = false,
+                showFilterIcon = false,
+                showCalendarIcon = false
             )
             CalendarLayout(
                 isExpanded = isCalendarExpanded,
@@ -151,52 +170,91 @@ private fun MyTeamScreenContent(
                 onDateSelected = onDateSelected,
                 rotas = calendarRotas.map { it.rota },
                 selectedMonth = selectedMonth,
-                selectedYear = selectedYear
+                selectedYear = selectedYear,
+                onMonthYearSelected = onMonthYearSelected,
+                onVisibleMonthChanged = onVisibleMonthChanged
             )
+
             if (isLoading) {
                 ShimmerBox(
                     modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
                     height = 40.dp, // Approximate height of the tab layout
                     cornerRadius = dimens.cornerRadiusMedium
                 )
-                /*ShimmerBox(
-                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
-                    height = 40.dp, // Approximate height of the tab layout
-                    cornerRadius = dimens.cornerRadiusMedium
-                )*/
             } else {
-                /*CustomTabLayout(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(top = 2.dp),
-                    tabTitles = floorNames,
-                    innerPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
-                    tabPadding = PaddingValues(4.dp),
-                    cardCornerRadius = dimens.cornerRadiusMedium,
-                    textStyle = MaterialTheme.typography.labelSmall,
-                    selectedIndex = floorNames.indexOf(selectedFloorName),
-                    onTabSelected = { index ->
-                        onFloorNameSelected(floorNames[index])
+                // Manually building the tab row to put the drag handle in the middle
+                CustomCard(
+                    modifier = Modifier.fillMaxWidth().padding(top = 2.dp),
+                    innerPadding = PaddingValues(vertical = 8.dp, horizontal = 0.dp), // Remove horizontal padding to let buttons touch edges
+                    cornerRadius = dimens.cornerRadiusMedium
+                ) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween // Push buttons to the ends
+                    ) {
+                        // "Day" Button (Far Left)
+                        val dayIndex = shiftTypes.indexOf("Day")
+                        if (dayIndex != -1) {
+                            TabButton(
+                                modifier = Modifier.width(120.dp),
+                                label = "Day",
+                                textStyle = MaterialTheme.typography.labelLarge,
+                                selected = selectedShiftType == "Day",
+                                tabPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
+                                onClick = { onShiftTypeSelected("Day") }
+                            )
+                        }
+
+                        // Drag handle in the middle
+                        Box(
+                            modifier = Modifier
+                                .weight(1f) // Take up remaining space to keep handle centered
+                                .height(40.dp)
+                                .draggable(
+                                    orientation = Orientation.Vertical,
+                                    state = rememberDraggableState { delta ->
+                                        if (delta > 10 && !isCalendarExpanded) {
+                                            onCalendarToggle()
+                                        } else if (delta < -10 && isCalendarExpanded) {
+                                            onCalendarToggle()
+                                        }
+                                    }
+                                ),
+                            contentAlignment = androidx.compose.ui.Alignment.Center
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .width(30.dp)
+                                    .height(4.dp)
+                                    .clip(RoundedCornerShape(2.dp))
+                                    .background(MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                            )
+                        }
+
+                        // "Night" Button (Far Right)
+                        val nightIndex = shiftTypes.indexOf("Night")
+                        if (nightIndex != -1) {
+                            TabButton(
+                                modifier = Modifier.width(120.dp),
+                                label = "Night",
+                                textStyle = MaterialTheme.typography.labelLarge,
+                                selected = selectedShiftType == "Night",
+                                tabPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
+                                onClick = { onShiftTypeSelected("Night") }
+                            )
+                        }
                     }
-                )*/
-                CustomTabLayout(
-                    modifier = Modifier.fillMaxWidth()
-                        .padding(top = 2.dp),
-                    tabTitles = shiftTypes,
-                    innerPadding = PaddingValues(vertical = 8.dp, horizontal = 8.dp),
-                    tabPadding = PaddingValues(4.dp),
-                    cardCornerRadius = dimens.cornerRadiusMedium,
-                    textStyle = MaterialTheme.typography.labelLarge,
-                    selectedIndex = shiftTypes.indexOf(selectedShiftType),
-                    onTabSelected = { index ->
-                        onShiftTypeSelected(shiftTypes[index])
-                    }
-                )
+                }
             }
+
             MyTeamList(
                 isLoading = isLoading,
                 modifier = Modifier.padding(top = 8.dp),
                 userInfo = userInfo,
                 rotas = rotas,
+                cancellingRequestId = cancellingRequestId,
+                onCancelRequest = onCancelRequest,
                 onClick = onRotaClick
             )
         }
@@ -213,6 +271,8 @@ private fun MyTeamList(
     modifier: Modifier = Modifier,
     userInfo: UserInfo?,
     rotas: List<EmployeeRota> = emptyList(),
+    cancellingRequestId: Int? = null,
+    onCancelRequest: (EmployeeRota) -> Unit = {},
     onClick: (EmployeeRota) -> Unit = {}
 ) {
     Column(
@@ -251,13 +311,26 @@ private fun MyTeamList(
                 }
             }
         } else {
-            rotas.forEach {
+            // Sort: ME first (with dark left border), then teammates
+            val sortedRotas = rotas.sortedByDescending {
+                userInfo?.id.toString() == it.employee.id.toString()
+            }
+            sortedRotas.forEach {
                 val isCurrentUser = userInfo?.id.toString() == it.employee.id.toString()
+                val hasCancellable = isCurrentUser &&
+                        it.rota.status == org.worklog.app.domain.model.RotaStatus.PENDING &&
+                        it.rota.requestId > 0
                 TeamShiftCard(
                     shift = "${it.rota.shiftStartTime} - ${it.rota.shiftEndTime}",
+                    floorName = it.rota.floorName,
                     name = it.employee.displayName + if (isCurrentUser) " (You)" else "",
                     profileImage = it.employee.profilePicture,
                     status = it.rota.status,
+                    isCurrentUser = isCurrentUser,
+                    isCancelling = cancellingRequestId != null && cancellingRequestId == it.rota.requestId,
+                    onCancelClick = if (hasCancellable) {
+                        { onCancelRequest(it) }
+                    } else null,
                     onClick = { onClick(it) }
                 )
             }

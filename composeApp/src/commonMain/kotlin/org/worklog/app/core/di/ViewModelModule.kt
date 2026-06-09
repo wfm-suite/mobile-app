@@ -15,21 +15,23 @@ import org.worklog.app.presentation.screen.profile.details.ProfileDetailsViewMod
 import org.worklog.app.presentation.screen.rota.my_team.MyTeamViewModel
 import org.worklog.app.presentation.screen.rota.time_card.TimeCardViewModel
 import org.worklog.app.presentation.screen.shift.ShiftViewModel
+import org.worklog.app.presentation.screen.notification.NotificationViewModel
 import org.worklog.app.presentation.screen.swap.RotaSwapViewModel
 
 val viewModelModule = module {
-    viewModel { AppViewModel(get(), get()) }
+    viewModel { AppViewModel(get(), get(), get(), get(), get()) }
     viewModel { LoginViewModel(get()) }
-    viewModel { HomeViewModel(get(), get(), get(), get(), get()) }
+    viewModel { HomeViewModel(get(), get(), get(), get(), get(), get(), get()) }
     viewModel { ProfileViewModel(get(), get()) }
-    viewModel { MyTeamViewModel(get(),get()) }
-    viewModel { LeaveViewModel(get()) }
+    viewModel { MyTeamViewModel(get(), get(), get(), get()) }
+    viewModel { LeaveViewModel(get(), get()) }
     viewModel { OnboardingViewModel(get()) }
-    viewModel { ShiftViewModel(get(), get(), get()) }
-    viewModel { HolidayRequestViewModel(get(), get()) }
+    viewModel { ShiftViewModel(get(), get(), get(), get()) }
+    viewModel { HolidayRequestViewModel(get(), get(), get(), get()) }
     viewModel { ProfileDetailsViewModel(get(), get(), get()) }
     viewModel { MessageViewModel(get(), get()) }
     viewModel { PasswordResetViewModel(get()) }
-    viewModel { RotaSwapViewModel(get(), get(), get()) }
+    viewModel { RotaSwapViewModel(get(), get(), get(), get()) }
     viewModel { TimeCardViewModel(get()) }
+    viewModel { NotificationViewModel(get(), get(), get(), get(), get(), get()) }
 }
